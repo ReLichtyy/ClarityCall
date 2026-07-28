@@ -1,0 +1,35 @@
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--background);
+}
+
+.App-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  background: var(--gradient-brand);
+  min-height: 50vh;
+}
+
+.App-logo {
+  height: 80px;
+  margin-bottom: 1.5rem;
+}
+
+.App-header h1 {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.App-header p {
+  font-size: 1.25rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+}

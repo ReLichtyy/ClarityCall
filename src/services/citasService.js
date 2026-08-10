@@ -84,3 +84,53 @@ export async function getCitaById(id, options = {}) {
 
   return payload.data
 }
+
+export async function createCita(citaData, options = {}) {
+  let response
+
+  try {
+    response = await fetch(`${API_URL}/citas`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(citaData),
+      signal: options.signal,
+    })
+  } catch (error) {
+    if (error?.name === "AbortError") throw error
+    throw new CitasApiError(
+      "No se pudo conectar con la API de citas.",
+      "NETWORK_ERROR",
+      null,
+      { cause: error },
+    )
+  }
+
+  if (!response.ok) {
+    throw new CitasApiError(
+      "No se pudo crear la cita.",
+      "HTTP_ERROR",
+      response.status,
+    )
+  }
+
+  try {
+    const payload = await response.json()
+    if (!payload?.success || !payload.data) {
+      throw new CitasApiError(
+        "La API devolvió una respuesta inválida.",
+        "INVALID_RESPONSE",
+      )
+    }
+    return payload.data
+  } catch (error) {
+    throw new CitasApiError(
+      "La API devolvió una respuesta inválida.",
+      "INVALID_RESPONSE",
+      response.status,
+      { cause: error },
+    )
+  }
+}

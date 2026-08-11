@@ -13,10 +13,10 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route element={<App />}>
+        <Route path="/" element={<App />}>
           <Route index element={<HomePage />} />
+          <Route path="AgendarCita" element={<NuevaCitaPage />} />
           <Route path="citas" element={<CitasPage />} />
-          <Route path="citas/nueva" element={<NuevaCitaPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

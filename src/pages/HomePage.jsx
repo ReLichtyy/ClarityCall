@@ -30,15 +30,17 @@ export function HomePage() {
                         </div>
 
                         <div className="flex flex-col gap-3 sm:flex-row">
-                            <Button size="lg" className="group">
-                                <Link to={`events`}>
-                                Ver eventos
-                                </Link>
+                            <Button asChild size="lg">
+                              <Link className="group" to="/citas">
+                                Ver citas
                                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                              </Link>
                             </Button>
 
-                            <Button size="lg" variant="outline">
-                                Crear evento
+                            <Button asChild size="lg" variant="outline">
+                              <Link to="/AgendarCita">
+                                Agendar cita
+                              </Link>
                             </Button>
                         </div>
                     </div>

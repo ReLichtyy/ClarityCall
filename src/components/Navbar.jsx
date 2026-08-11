@@ -21,6 +21,7 @@ export function Navbar() {
           <Button asChild variant="ghost">
             <NavLink
               to="/"
+              end
               className={({ isActive }) =>
                 `rounded-full px-4 ${
                   isActive
@@ -48,11 +49,19 @@ export function Navbar() {
             </NavLink>
           </Button>
 
-          <Button
-            variant="ghost"
-            className="rounded-full px-4 text-text-secondary hover:bg-surface-hover hover:text-text-primary"
-          >
-            Agendar cita
+          <Button asChild variant="ghost">
+            <NavLink
+              to="/AgendarCita"
+              className={({ isActive }) =>
+                `rounded-full px-4 ${
+                  isActive
+                    ? "bg-primary-subtle text-primary"
+                    : "text-text-secondary hover:bg-surface-hover hover:text-text-primary"
+                }`
+              }
+            >
+              Agendar cita
+            </NavLink>
           </Button>
         </div>
       </nav>

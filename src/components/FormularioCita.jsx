@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import { Calendar, Clock, User, Briefcase, AlertCircle, CheckCircle } from "lucide-react"
+import { DatePickerTime } from "@/components/ui/time"
+import { Calendar, User, Briefcase, AlertCircle, CheckCircle } from "lucide-react"
 
 const CATEGORIAS = {
   servicio: {
@@ -131,30 +132,37 @@ export function FormularioCita() {
               <h3 className="text-lg font-semibold text-text-primary">{categoria.titulo}</h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {categoria.campos.map(campo => {
-                const placeholders = {
-                  servicio: "Nombre del servicio",
-                  duracion: "Duración (ej: 30 min)",
-                  cliente: "Nombre del cliente",
-                  telefono: "Teléfono",
-                  email: "Correo electrónico",
-                  fecha: "Fecha",
-                  hora: "Hora"
-                }
-                const tipos = {
-                  fecha: "date",
-                  hora: "time",
-                  email: "email",
-                  telefono: "tel"
-                }
-                return (
-                  <div key={campo}>
-                    {renderCampo(campo, placeholders[campo], tipos[campo] || "text")}
-                  </div>
-                )
-              })}
-            </div>
+            {key === "fecha" ? (
+              <DatePickerTime
+                date={formData.fecha}
+                time={formData.hora}
+                onChange={handleChange}
+                dateError={errors.fecha}
+                timeError={errors.hora}
+                disabled={isSubmitting}
+              />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {categoria.campos.map(campo => {
+                  const placeholders = {
+                    servicio: "Nombre del servicio",
+                    duracion: "Duración (ej: 30 min)",
+                    cliente: "Nombre del cliente",
+                    telefono: "Teléfono",
+                    email: "Correo electrónico"
+                  }
+                  const tipos = {
+                    email: "email",
+                    telefono: "tel"
+                  }
+                  return (
+                    <div key={campo}>
+                      {renderCampo(campo, placeholders[campo], tipos[campo] || "text")}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </Card>
         )
       })}

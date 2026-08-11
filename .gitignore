@@ -36,4 +36,4 @@ yarn-error.log*
 # api-citas
 api-citas/api/node_modules/
 api-citas/api/logs/
-api-citas/api/.env
+

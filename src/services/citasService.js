@@ -134,3 +134,46 @@ export async function createCita(citaData, options = {}) {
     )
   }
 }
+
+export async function updateCita(id, eventData) {
+    try {
+        const response = await fetch(`${API_URL}/events/${id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(eventData)
+        })
+        if (!response.ok) {
+            const data = await response.json()
+            console.error("========== ERROR API UPDATE ==========")
+            console.error(data)
+            console.error(data.detail?.stack)
+            console.error("======================================")
+
+            throw new Error(
+                JSON.stringify(data, null, 2)
+            )
+        }
+        return await response.json()
+    } catch {
+        throw new Error("No se pudo actualizar la cita.")
+    }
+}
+
+export async function deleteCita(id) {
+    /*
+    IMPORTANTE:
+    Esta función queda como referencia para cuando el API tenga DELETE.
+    Ejemplo real:
+    const response = await fetch(`${API_URL}/events/${id}`, {
+        method: "DELETE"
+    })
+    if (!response.ok) {
+        throw new Error("No se pudo eliminar el evento.")
+    }
+    return await response.json()
+    */
+    console.log("Simulación de eliminación del evento con id:", id)
+}
+

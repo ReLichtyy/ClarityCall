@@ -120,7 +120,7 @@ export function Navbar() {
 
         {/* CTA - AGENDAR CITA */}
         <NavLink
-          to="/agendar-cita"
+          to="/AgendarCita"
           className="
             group relative
             flex items-center justify-center

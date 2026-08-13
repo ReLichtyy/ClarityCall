@@ -36,7 +36,12 @@ test("getProfesores loads only active employees", async () => {
   const profesores = [{
     id: 4,
     especialidadId: 1,
-    usuario: { nombre: "Ana" },
+    usuario: {
+      nombre: "Ana",
+      primerApellido: "Rojas",
+      segundoApellido: null,
+      correo: "ana@example.com",
+    },
     especialidad: { id: 1, nombre: "Matemática" },
     servicios: [],
   }]
@@ -68,6 +73,32 @@ test("team services reject malformed nested professor data", async () => {
       getProfesores({
         fetchImpl: async () =>
           jsonResponse({ success: true, data: [{ id: 1, usuario: null }] }),
+      }),
+    (error) =>
+      error instanceof DirectorioApiError &&
+      error.code === "INVALID_RESPONSE",
+  )
+})
+
+test("team services reject rendered fields with invalid types", async () => {
+  await assert.rejects(
+    () =>
+      getProfesores({
+        fetchImpl: async () =>
+          jsonResponse({
+            success: true,
+            data: [{
+              id: 1,
+              especialidadId: 1,
+              usuario: {
+                nombre: "Ana",
+                primerApellido: 123,
+                correo: "ana@example.com",
+              },
+              especialidad: { id: 1, nombre: "Matemática" },
+              servicios: [],
+            }],
+          }),
       }),
     (error) =>
       error instanceof DirectorioApiError &&

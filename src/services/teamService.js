@@ -86,6 +86,10 @@ function isNamedRecord(value) {
   return isRecord(value) && isId(value.id) && typeof value.nombre === "string"
 }
 
+function isOptionalString(value) {
+  return value === undefined || value === null || typeof value === "string"
+}
+
 function isEspecialidad(value) {
   return (
     isNamedRecord(value) &&
@@ -100,6 +104,10 @@ function isProfesor(value) {
     isId(value.especialidadId) &&
     isRecord(value.usuario) &&
     typeof value.usuario.nombre === "string" &&
+    typeof value.usuario.primerApellido === "string" &&
+    isOptionalString(value.usuario.segundoApellido) &&
+    typeof value.usuario.correo === "string" &&
+    isOptionalString(value.descripcion) &&
     isNamedRecord(value.especialidad) &&
     Array.isArray(value.servicios) &&
     value.servicios.every(isNamedRecord)

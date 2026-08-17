@@ -5,6 +5,7 @@
   "main": "index.js",
  "scripts": {
     "server": "nodemon",
+    "test": "tsx --test prisma/*.test.ts src/config/*.test.ts",
     "clean:images": "tsx ./src/config/delete-images.ts",
     "init": "prisma migrate dev --name init && prisma generate && prisma db seed && nodemon",
     "reset": "prisma migrate reset --force && npm run clean:images && prisma db seed && nodemon",

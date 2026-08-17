@@ -9,10 +9,12 @@ import {
 } from "@/components/ui/card"
 import {
   ArrowRight,
+  BriefcaseBusiness,
   CalendarDays,
   CircleDollarSign,
+  Code2,
   Clock3,
-  Stethoscope,
+  Timer,
   UserRound,
 } from "lucide-react"
 
@@ -44,6 +46,8 @@ export function CitaCard({ cita }) {
   const clientName = getNombreCompleto(cita.cliente)
   const status = cita.estadoCita?.nombre || "Pendiente"
   const imageUrl = getImageUrl(cita.servicio?.imagen)
+  const specialty = cita.empleado?.especialidad?.nombre || "Mentoría de software"
+  const duration = Number(cita.duracionMinutos || cita.servicio?.duracionMinutos)
 
   return (
     <Card className="group relative overflow-hidden border-border-default bg-surface text-card-foreground transition-all duration-300 hover:border-border-focus/60 hover:bg-surface-elevated hover:shadow-xl">
@@ -61,7 +65,7 @@ export function CitaCard({ cita }) {
             className="flex h-full w-full items-center justify-center text-primary"
             style={{ backgroundImage: "var(--gradient-brand)" }}
           >
-            <Stethoscope className="h-14 w-14" aria-hidden="true" />
+            <Code2 className="h-14 w-14" aria-hidden="true" />
           </div>
         )}
         <Badge className={`absolute right-3 top-3 border-0 ${getStatusClasses(status)}`}>
@@ -73,9 +77,13 @@ export function CitaCard({ cita }) {
         <CardTitle className="text-xl font-bold tracking-tight transition-colors group-hover:text-primary">
           {serviceName}
         </CardTitle>
-        <p className="text-sm capitalize text-text-secondary">
+        <p className="text-sm text-text-secondary">
           {formatFecha(cita.fecha)}
         </p>
+        <div className="mt-2 flex items-center gap-2 text-xs font-medium text-primary">
+          <BriefcaseBusiness className="h-3.5 w-3.5" aria-hidden="true" />
+          <span>{specialty}</span>
+        </div>
       </CardHeader>
 
       <CardContent className="grid gap-3 text-sm text-text-secondary">
@@ -83,6 +91,12 @@ export function CitaCard({ cita }) {
           <Clock3 className="h-4 w-4 text-primary" aria-hidden="true" />
           <span>{formatHora(cita.horaInicio)} – {formatHora(cita.horaFin)}</span>
         </div>
+        {Number.isFinite(duration) && duration > 0 && (
+          <div className="flex items-center gap-2">
+            <Timer className="h-4 w-4 text-primary" aria-hidden="true" />
+            <span>{duration} minutos</span>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <UserRound className="h-4 w-4 text-secondary" aria-hidden="true" />
           <span className="line-clamp-1">Atiende: {employeeName}</span>
@@ -97,7 +111,7 @@ export function CitaCard({ cita }) {
         </div>
       </CardContent>
 
-      <CardFooter className="pt-4">
+      <CardFooter className="mt-auto pt-4">
         <Button
           variant="ghost"
           className="group/btn w-full bg-secondary-subtle text-secondary transition-all hover:bg-surface-active hover:text-text-primary"

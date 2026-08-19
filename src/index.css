@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -86,11 +87,9 @@
 }
 
 @theme inline {
-  --font-heading: var(--font-sans);
   --font-sans: 'Geist Variable', sans-serif;
-  --font-source-code-pro: var(--font-source-code-pro);
-  --font-source-serif-4: var(--font-source-serif-4);
-  --font-source-code-pro: var(--font-source-code-pro);
+  --font-heading: var(--font-sans);
+  --font-mono: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-elevated: var(--surface-elevated);
@@ -175,9 +174,9 @@
     @apply font-sans;
     }
   :root {
-    --font-heading: var(--font-source-code-pro);
-    --font-body: var(--font-source-serif-4);
-    --font-mono: var(--font-source-code-pro);
+    --font-heading: 'Geist Variable', sans-serif;
+    --font-body: 'Geist Variable', sans-serif;
+    --font-mono: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
 
   h1 {
@@ -248,5 +247,16 @@
   .app-shell {
     background-color: var(--background);
     background-image: radial-gradient(circle at 50% 0%, var(--glow-blue), transparent 34rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

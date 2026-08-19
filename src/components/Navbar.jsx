@@ -120,7 +120,7 @@ export function Navbar() {
 
         {/* CTA - AGENDAR CITA */}
         <NavLink
-          to="/AgendarCita"
+          to="/reservar"
           className="
             group relative
             flex items-center justify-center
@@ -164,7 +164,7 @@ export function Navbar() {
           {/* Texto */}
           <span className="relative z-10">
             <GradientText
-              text="Agendar Cita"
+              text="Agendar sesión"
               neon
             />
           </span>

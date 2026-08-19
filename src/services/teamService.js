@@ -21,7 +21,7 @@ async function requestCollection(path, resourceName, {
   baseUrl = TEAM_API_URL,
   fetchImpl = globalThis.fetch,
   signal,
-} = {}, validateItem = () => true) {
+} = {}, validateItem = () => true, { tolerante = false } = {}) {
   let response
 
   try {
@@ -59,11 +59,22 @@ async function requestCollection(path, resourceName, {
     )
   }
 
-  if (
-    !payload?.success ||
-    !Array.isArray(payload.data) ||
-    !payload.data.every(validateItem)
-  ) {
+  if (!payload?.success || !Array.isArray(payload.data)) {
+    throw new DirectorioApiError(
+      "La API devolvió una respuesta inválida.",
+      "INVALID_RESPONSE",
+      response.status,
+    )
+  }
+
+  // En modo tolerante una entrada incompleta se descarta en lugar de
+  // derribar la sección completa: la landing debe seguir en pie aunque
+  // un registro del seed venga a medias.
+  if (tolerante) {
+    return payload.data.filter(validateItem)
+  }
+
+  if (!payload.data.every(validateItem)) {
     throw new DirectorioApiError(
       "La API devolvió una respuesta inválida.",
       "INVALID_RESPONSE",
@@ -86,10 +97,6 @@ function isNamedRecord(value) {
   return isRecord(value) && isId(value.id) && typeof value.nombre === "string"
 }
 
-function isOptionalString(value) {
-  return value === undefined || value === null || typeof value === "string"
-}
-
 function isEspecialidad(value) {
   return (
     isNamedRecord(value) &&
@@ -97,20 +104,19 @@ function isEspecialidad(value) {
   )
 }
 
+/**
+ * Mínimo imprescindible para pintar una tarjeta de mentor:
+ * identificador y nombre de la persona. Todo lo demás
+ * (especialidad, descripción, servicios) se renderiza solo si viene,
+ * porque el seed puede tener registros a medias.
+ */
 function isProfesor(value) {
   return (
     isRecord(value) &&
     isId(value.id) &&
-    isId(value.especialidadId) &&
     isRecord(value.usuario) &&
     typeof value.usuario.nombre === "string" &&
-    typeof value.usuario.primerApellido === "string" &&
-    isOptionalString(value.usuario.segundoApellido) &&
-    typeof value.usuario.correo === "string" &&
-    isOptionalString(value.descripcion) &&
-    isNamedRecord(value.especialidad) &&
-    Array.isArray(value.servicios) &&
-    value.servicios.every(isNamedRecord)
+    typeof value.usuario.primerApellido === "string"
   )
 }
 
@@ -126,8 +132,67 @@ export function getEspecialidades(options = {}) {
 export function getProfesores(options = {}) {
   return requestCollection(
     "/empleados/activos",
-    "los profesores",
+    "los mentores",
     options,
     isProfesor,
+    { tolerante: true },
   )
+}
+
+/**
+ * GET /empleados/:id
+ *
+ * Devuelve un único mentor. Se usa en /mentores/:id.
+ */
+export async function getProfesorPorId(id, {
+  baseUrl = TEAM_API_URL,
+  fetchImpl = globalThis.fetch,
+  signal,
+} = {}) {
+  let response
+
+  try {
+    response = await fetchImpl(
+      `${normalizeBaseUrl(baseUrl)}/empleados/${encodeURIComponent(id)}`,
+      { headers: { Accept: "application/json" }, signal },
+    )
+  } catch (error) {
+    if (error?.name === "AbortError") throw error
+    throw new DirectorioApiError(
+      "No se pudo conectar con el directorio del equipo.",
+      "NETWORK_ERROR",
+      null,
+      { cause: error },
+    )
+  }
+
+  if (response.status === 404) {
+    return null
+  }
+
+  if (!response.ok) {
+    throw new DirectorioApiError(
+      "No se pudo cargar el mentor.",
+      "HTTP_ERROR",
+      response.status,
+    )
+  }
+
+  let payload
+  try {
+    payload = await response.json()
+  } catch (error) {
+    throw new DirectorioApiError(
+      "La API devolvió una respuesta inválida.",
+      "INVALID_RESPONSE",
+      response.status,
+      { cause: error },
+    )
+  }
+
+  if (!payload?.success || !isProfesor(payload.data)) {
+    return null
+  }
+
+  return payload.data
 }

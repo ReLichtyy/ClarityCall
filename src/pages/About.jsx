@@ -4,11 +4,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { PageContainer } from "@/components/layout/Container"
 
 
 export function About() {
     return (
-        <section>
+        <PageContainer as="section">
             <h2>Acerca de</h2>
             <p>Información sobre la aplicación.</p>
             <Accordion type="single" collapsible defaultValue="item-1">
@@ -19,6 +20,6 @@ export function About() {
                     </AccordionContent>
                 </AccordionItem>
             </Accordion>
-        </section>
+        </PageContainer>
     );
 }

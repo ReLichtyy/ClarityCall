@@ -2,43 +2,49 @@ import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PageContainer } from "@/components/layout/Container"
 import { EstadoSeccion } from "@/components/EstadoSeccion"
-import { DirectorioApiError, getProfesorPorId } from "@/services/teamService"
-import { getNombreCompleto } from "@/lib/citaFormatters"
-import { slugify } from "@/lib/slug"
+import { MentorCard } from "@/components/home/MentorCard"
+import { DirectorioApiError, getEspecialidades } from "@/services/teamService"
+import { buscarPorSlug } from "@/lib/slug"
 
 function mensajeDeError(error) {
   if (error instanceof DirectorioApiError) return error.message
-  return "Ocurrió un error inesperado al cargar el mentor."
+  return "Ocurrió un error inesperado al cargar la especialidad."
 }
 
-function SkeletonMentor() {
+function SkeletonDetalle() {
   return (
-    <div className="space-y-5">
-      <Skeleton className="h-5 w-32 rounded-4xl" />
-      <Skeleton className="h-10 w-80" />
-      <Skeleton className="h-4 w-full max-w-xl" />
-      <Skeleton className="h-4 w-2/3 max-w-md" />
+    <div className="space-y-10">
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-72" />
+        <Skeleton className="h-4 w-full max-w-xl" />
+        <Skeleton className="h-4 w-2/3 max-w-md" />
+      </div>
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, indice) => (
+          <Card key={indice} className="border-border-subtle bg-surface">
+            <CardHeader>
+              <Skeleton className="h-6 w-40" />
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   )
 }
 
-/**
- * Perfil de un mentor.
- *
- * En esta entrega muestra los datos que ya expone GET /empleados/:id
- * (persona, especialidad, descripción y servicios). La franja de
- * disponibilidad queda declarada y conectada al flujo de reserva, que
- * se implementa después.
- */
-export function MentorDetailPage() {
-  const { id } = useParams()
+export function EspecialidadDetallePage() {
+  const { slug } = useParams()
 
-  const [mentor, setMentor] = useState(null)
+  const [especialidad, setEspecialidad] = useState(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
   const [intento, setIntento] = useState(0)
@@ -51,10 +57,13 @@ export function MentorDetailPage() {
       setError(null)
 
       try {
-        setMentor(await getProfesorPorId(id, { signal: controlador.signal }))
+        const datos = await getEspecialidades({ signal: controlador.signal })
+        // El API no expone slug, así que se resuelve comparando
+        // el slug derivado del nombre de cada especialidad.
+        setEspecialidad(buscarPorSlug(datos, slug))
       } catch (fallo) {
         if (fallo?.name !== "AbortError") {
-          console.error("No se pudo cargar el mentor", fallo)
+          console.error("No se pudo cargar la especialidad", fallo)
           setError(mensajeDeError(fallo))
         }
       } finally {
@@ -64,81 +73,67 @@ export function MentorDetailPage() {
 
     cargar()
     return () => controlador.abort()
-  }, [id, intento])
+  }, [slug, intento])
 
-  const servicios = Array.isArray(mentor?.servicios)
-    ? mentor.servicios.filter((item) => item?.activo !== false)
+  const mentores = Array.isArray(especialidad?.empleados)
+    ? especialidad.empleados.filter((item) => item?.activo !== false)
     : []
 
-  // El flujo de reserva se salta los pasos cuyo dato ya conocemos.
-  const parametrosReserva = new URLSearchParams()
-  if (mentor?.especialidadId) {
-    parametrosReserva.set("especialidadId", String(mentor.especialidadId))
-  }
-  if (mentor?.id) {
-    parametrosReserva.set("empleadoId", String(mentor.id))
-  }
+  const servicios = Array.isArray(especialidad?.servicios)
+    ? especialidad.servicios.filter((item) => item?.activo !== false)
+    : []
 
   return (
-    <PageContainer as="section" aria-labelledby="mentor-titulo">
+    <PageContainer as="section" aria-labelledby="especialidad-titulo">
       <Link
-        to="/team"
+        to="/especialidades"
         className="inline-flex items-center gap-1.5 rounded-lg font-mono text-[0.7rem] uppercase tracking-[0.16em] text-text-muted transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-        Directorio
+        Especialidades
       </Link>
 
       <div className="mt-8">
         <EstadoSeccion
           cargando={cargando}
           error={error}
-          skeleton={<SkeletonMentor />}
+          skeleton={<SkeletonDetalle />}
           onReintentar={() => setIntento((valor) => valor + 1)}
         >
-          {!mentor ? (
+          {!especialidad ? (
             <div className="rounded-xl border border-border-subtle bg-surface p-10 text-center">
               <h1
-                id="mentor-titulo"
+                id="especialidad-titulo"
                 className="text-2xl font-bold tracking-tight text-foreground"
               >
-                Mentor no encontrado
+                Especialidad no encontrada
               </h1>
               <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-text-secondary">
-                No existe un mentor con este identificador, o ya no está
-                disponible en el directorio.
+                No existe ninguna especialidad que corresponda a esta dirección.
+                Puede que haya cambiado de nombre.
               </p>
               <Button asChild className="mt-6">
-                <Link to="/team">Ver el directorio</Link>
+                <Link to="/especialidades">Ver todas las especialidades</Link>
               </Button>
             </div>
           ) : (
             <>
-              {mentor.especialidad?.nombre && (
-                <Link
-                  to={`/especialidades/${slugify(mentor.especialidad.nombre)}`}
-                  className="inline-block rounded-4xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                >
-                  <Badge variant="secondary">{mentor.especialidad.nombre}</Badge>
-                </Link>
-              )}
-
               <h1
-                id="mentor-titulo"
-                className="mt-4 max-w-3xl text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
+                id="especialidad-titulo"
+                className="max-w-3xl text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
               >
-                {getNombreCompleto(mentor.usuario)}
+                {especialidad.nombre}
               </h1>
 
               <p className="mt-5 max-w-xl text-pretty leading-relaxed text-text-secondary">
-                {mentor.descripcion ||
-                  "Este mentor todavía no ha publicado su descripción."}
+                {especialidad.descripcion ||
+                  "Esta especialidad todavía no tiene una descripción publicada."}
               </p>
 
               <div className="mt-8">
                 <Button asChild size="lg">
                   <Link
-                    to={`/reservar?${parametrosReserva.toString()}`}
+                    to={`/reservar?especialidadId=${especialidad.id}`}
                     className="group"
                   >
                     Agendar sesión
@@ -151,12 +146,12 @@ export function MentorDetailPage() {
               </div>
 
               {servicios.length > 0 && (
-                <section aria-labelledby="mentor-servicios" className="mt-16">
+                <section aria-labelledby="servicios-titulo" className="mt-16">
                   <h2
-                    id="mentor-servicios"
+                    id="servicios-titulo"
                     className="font-mono text-[0.7rem] uppercase tracking-[0.2em] text-text-muted"
                   >
-                    Sesiones que ofrece
+                    Sesiones disponibles
                   </h2>
 
                   <ul className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -179,19 +174,29 @@ export function MentorDetailPage() {
                 </section>
               )}
 
-              <section aria-labelledby="mentor-disponibilidad" className="mt-16">
+              <section aria-labelledby="mentores-especialidad" className="mt-16">
                 <h2
-                  id="mentor-disponibilidad"
-                  className="font-mono text-[0.7rem] uppercase tracking-[0.2em] text-text-muted"
+                  id="mentores-especialidad"
+                  className="text-xl font-semibold tracking-tight text-foreground"
                 >
-                  Disponibilidad
+                  Mentores en esta especialidad
                 </h2>
 
-                <p className="mt-5 rounded-xl border border-border-subtle bg-surface p-6 text-sm leading-relaxed text-text-muted">
-                  La agenda de este mentor se mostrará aquí como parte del flujo
-                  de reserva. Por ahora puedes iniciar la solicitud con el botón
-                  de arriba.
-                </p>
+                <div className="mt-6">
+                  {mentores.length === 0 ? (
+                    <p className="rounded-xl border border-border-subtle bg-surface p-6 text-center text-sm text-text-muted">
+                      Todavía no hay mentores asignados a esta especialidad.
+                    </p>
+                  ) : (
+                    <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                      {mentores.map((mentor) => (
+                        <li key={mentor.id}>
+                          <MentorCard mentor={mentor} />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </section>
             </>
           )}

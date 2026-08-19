@@ -3,7 +3,8 @@ import { motion } from "motion/react";
 function GradientText({
   text,
   className = "",
-  gradient = "linear-gradient(90deg, #3b82f6 0%, #a855f7 20%, #ec4899 50%, #a855f7 80%, #3b82f6 100%)",
+  // Solo colores de la paleta: primary y secondary.
+  gradient = "linear-gradient(90deg, var(--primary) 0%, var(--secondary) 50%, var(--primary) 100%)",
   neon = false,
   transition = {
     duration: 3,

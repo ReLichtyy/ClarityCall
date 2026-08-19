@@ -4,7 +4,6 @@ import {
     useMemo,
     useState
 } from "react"
-import PropTypes from "prop-types"
 
 import { AuthContext } from "./AuthContext"
 import { getProfile, loginUser } from "@/services/authService"
@@ -60,9 +59,7 @@ export function AuthProvider({ children }) {
 
     const login = useCallback(async (credentials) => {
         const loginResponse = await loginUser(credentials)
-        console.log("loginResponse", loginResponse)
         const newToken = loginResponse.data?.token ?? loginResponse.token
-        console.log("newToken", newToken)
         if (!newToken) {
             throw new Error(
                 "El API no devolvió un token válido."
@@ -90,7 +87,7 @@ export function AuthProvider({ children }) {
             if (allowedRoles.length === 0) {
                 return false
             }
-            const userRole = user?.role?.name
+            const userRole = user?.rol?.nombre
 
             if (!userRole) {
                 return false
@@ -125,7 +122,3 @@ export function AuthProvider({ children }) {
         </AuthContext.Provider>
     )
 }
-AuthProvider.propTypes = {
-    children: PropTypes.node.isRequired
-}
-

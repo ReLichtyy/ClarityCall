@@ -15,6 +15,7 @@ import {
   getEspecialidades,
   getProfesores,
 } from "@/services/teamService"
+import { PageContainer } from "@/components/layout/Container"
 
 function getProfessorName(usuario = {}) {
   return [usuario.nombre, usuario.primerApellido, usuario.segundoApellido]
@@ -76,7 +77,7 @@ export function TeamPage() {
       )
 
   return (
-    <section className="py-8" aria-labelledby="team-title">
+    <PageContainer as="section" aria-labelledby="team-title">
       <div className="mb-10 max-w-2xl">
         <Badge variant="outline" className="mb-4 border-primary/30 text-primary">
           Nuestro equipo
@@ -189,6 +190,6 @@ export function TeamPage() {
           )}
         </>
       )}
-    </section>
+    </PageContainer>
   )
 }

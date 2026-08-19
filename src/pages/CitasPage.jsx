@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/PageHeader"
 import { SearchBar } from "@/components/SearchBar"
 import { citaMatchesSearch } from "@/lib/citaFormatters"
 import { CitasApiError, getCitas } from "@/services/citasService"
+import { PageContainer } from "@/components/layout/Container"
 
 function getUserMessage(error) {
   if (error instanceof CitasApiError) return error.message
@@ -45,7 +46,7 @@ export function CitasPage() {
   const filteredCitas = citas.filter((cita) => citaMatchesSearch(cita, search))
 
   return (
-    <section aria-labelledby="citas-title">
+    <PageContainer as="section" aria-labelledby="citas-title">
       <PageHeader
         title="Citas"
         description={filteredCitas.length}
@@ -82,6 +83,6 @@ export function CitasPage() {
       {!loading && !error && filteredCitas.length > 0 && (
         <CitaList citas={filteredCitas} />
       )}
-    </section>
+    </PageContainer>
   )
 }

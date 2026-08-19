@@ -3,7 +3,9 @@ import { prisma } from "../src/config/prisma";
 import bcrypt from "bcryptjs";
 import {
     citasIniciales,
+    especialidadesIniciales,
     horariosIniciales,
+    serviciosMedicosObsoletos,
     serviciosIniciales,
     usuariosIniciales,
 } from "./seed-data";
@@ -12,16 +14,28 @@ import {
     horaParaTimeColumn,
 } from "../src/utils/timezone";
 
-function obtenerPasswordInicial(): string {
+async function obtenerPasswordHashInicial(): Promise<string> {
     const password = process.env.SEED_PASSWORD;
 
-    if (!password || password.length < 10) {
+    if (password && password.length < 10) {
         throw new Error(
-            "SEED_PASSWORD debe estar configurada y tener al menos 10 caracteres"
+            "SEED_PASSWORD debe tener al menos 10 caracteres"
         );
     }
 
-    return password;
+    if (password) return await bcrypt.hash(password, 10);
+
+    const usuarioDemoExistente = await prisma.usuario.findUnique({
+        where: { correo: "empleado.demo@clarity.local" },
+        select: { passwordHash: true },
+    });
+    if (!usuarioDemoExistente) {
+        throw new Error(
+            "SEED_PASSWORD debe configurarse para inicializar una base de datos vacía"
+        );
+    }
+
+    return usuarioDemoExistente.passwordHash;
 }
 
 async function main() {
@@ -189,19 +203,22 @@ async function main() {
         },
     });
 
-    // Especialidad base
-    const especialidadGeneral = await prisma.especialidad.upsert({
-        where: { nombre: "General" },
-        update: {},
-        create: {
-            nombre: "General",
-            descripcion: "Especialidad base para servicios y empleados generales.",
-            activo: true,
-        },
-    });
+    // Especialidades del catálogo de mentorías.
+    const especialidades = new Map<
+        string,
+        Awaited<ReturnType<typeof prisma.especialidad.upsert>>
+    >();
+    for (const especialidad of especialidadesIniciales) {
+        const especialidadCreada = await prisma.especialidad.upsert({
+            where: { nombre: especialidad.nombre },
+            update: { descripcion: especialidad.descripcion, activo: true },
+            create: { ...especialidad, activo: true },
+        });
+        especialidades.set(especialidadCreada.nombre, especialidadCreada);
+    }
 
     // Usuario administrador
-    const passwordHash = await bcrypt.hash(obtenerPasswordInicial(), 10);
+    const passwordHash = await obtenerPasswordHashInicial();
 
     const administradorUsuario = await prisma.usuario.upsert({
         where: { correo: "admin@citas.com" },
@@ -222,24 +239,46 @@ async function main() {
     const servicios = new Map<string, Awaited<ReturnType<typeof prisma.servicio.upsert>>>();
 
     for (const servicio of serviciosIniciales) {
+        const especialidad = especialidades.get(servicio.especialidadNombre);
+        if (!especialidad) {
+            throw new Error(`No existe la especialidad inicial ${servicio.especialidadNombre}`);
+        }
+
+        const datosServicio = {
+            nombre: servicio.nombre,
+            descripcion: servicio.descripcion,
+            precioBase: servicio.precioBase,
+            duracionMinutos: servicio.duracionMinutos,
+            imagen: servicio.imagen,
+        };
         const servicioCreado = await prisma.servicio.upsert({
             where: { nombre: servicio.nombre },
             update: {
-                descripcion: servicio.descripcion,
-                precioBase: servicio.precioBase,
-                duracionMinutos: servicio.duracionMinutos,
-                imagen: servicio.imagen,
+                ...datosServicio,
                 activo: true,
-                especialidadId: especialidadGeneral.id,
+                especialidadId: especialidad.id,
             },
             create: {
-                ...servicio,
+                ...datosServicio,
                 activo: true,
-                especialidadId: especialidadGeneral.id,
+                especialidadId: especialidad.id,
             },
         });
         servicios.set(servicioCreado.nombre, servicioCreado);
     }
+
+    // Retira únicamente las citas demo y servicios médicos del seed anterior.
+    const nombresObsoletos = [...serviciosMedicosObsoletos];
+    await prisma.cita.deleteMany({
+        where: {
+            creadoPorUsuarioId: administradorUsuario.id,
+            servicio: { nombre: { in: nombresObsoletos } },
+        },
+    });
+    await prisma.servicio.updateMany({
+        where: { nombre: { in: nombresObsoletos } },
+        data: { activo: false },
+    });
 
     // Usuarios de prueba. Todos usan SEED_PASSWORD y se almacenan con bcrypt.
     const rolesPorNombre = new Map([
@@ -279,33 +318,49 @@ async function main() {
         usuarios.set(usuarioCreado.correo, usuarioCreado);
     }
 
-    const empleadoUsuario = usuarios.get("empleado.demo@clarity.local");
-    if (!empleadoUsuario) {
-        throw new Error("No se pudo crear el usuario empleado de demostración");
-    }
+    const empleados = new Map<
+        string,
+        Awaited<ReturnType<typeof prisma.empleado.upsert>>
+    >();
+    for (const usuarioInicial of usuariosIniciales) {
+        if (usuarioInicial.rol !== "Empleado") continue;
 
-    const serviciosAsignados = [...servicios.values()].map((servicio) => ({
-        id: servicio.id,
-    }));
-    const empleado = await prisma.empleado.upsert({
-        where: { usuarioId: empleadoUsuario.id },
-        update: {
-            especialidadId: especialidadGeneral.id,
-            codigoEmpleado: "EMP-DEMO-001",
-            descripcion: "Profesional asignado a los servicios de demostración.",
-            activo: true,
-            servicios: { set: serviciosAsignados },
-        },
-        create: {
-            usuarioId: empleadoUsuario.id,
-            especialidadId: especialidadGeneral.id,
-            codigoEmpleado: "EMP-DEMO-001",
-            descripcion: "Profesional asignado a los servicios de demostración.",
-            activo: true,
-            servicios: { connect: serviciosAsignados },
-        },
-    });
-    const empleados = new Map([[empleadoUsuario.correo, empleado]]);
+        const empleadoUsuario = usuarios.get(usuarioInicial.correo);
+        const especialidad = usuarioInicial.especialidadNombre
+            ? especialidades.get(usuarioInicial.especialidadNombre)
+            : null;
+        if (
+            !empleadoUsuario ||
+            !especialidad ||
+            !usuarioInicial.codigoEmpleado ||
+            !usuarioInicial.descripcionPerfil
+        ) {
+            throw new Error(`Datos incompletos para el mentor ${usuarioInicial.correo}`);
+        }
+
+        const serviciosAsignados = [...servicios.values()]
+            .filter((servicio) => servicio.especialidadId === especialidad.id)
+            .map((servicio) => ({ id: servicio.id }));
+        const empleado = await prisma.empleado.upsert({
+            where: { usuarioId: empleadoUsuario.id },
+            update: {
+                especialidadId: especialidad.id,
+                codigoEmpleado: usuarioInicial.codigoEmpleado,
+                descripcion: usuarioInicial.descripcionPerfil,
+                activo: true,
+                servicios: { set: serviciosAsignados },
+            },
+            create: {
+                usuarioId: empleadoUsuario.id,
+                especialidadId: especialidad.id,
+                codigoEmpleado: usuarioInicial.codigoEmpleado,
+                descripcion: usuarioInicial.descripcionPerfil,
+                activo: true,
+                servicios: { connect: serviciosAsignados },
+            },
+        });
+        empleados.set(empleadoUsuario.correo, empleado);
+    }
 
     // Horario general de 08:00 a 18:00 para todos los días.
     for (const horario of horariosIniciales) {

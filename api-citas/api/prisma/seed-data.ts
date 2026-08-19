@@ -810,4 +810,192 @@ export const citasIniciales = [
     },
 ] as const;
 
+/* ------------------------------------------------------------------ */
+/* Servicios adicionales                                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Los adicionales incrementan el costo total de la cita,
+ * pero no modifican su duración ni su hora de finalización.
+ */
+export const adicionalesIniciales = [
+    {
+        nombre: "Reporte escrito de la sesión",
+        descripcion:
+            "Documento con hallazgos, recomendaciones y próximos pasos, entregado en 48 horas.",
+        precio: 15000,
+    },
+    {
+        nombre: "Grabación de la sesión",
+        descripcion:
+            "Grabación en video de la sesión completa, disponible por 90 días.",
+        precio: 10000,
+    },
+    {
+        nombre: "Seguimiento por Slack (1 semana)",
+        descripcion:
+            "Canal compartido durante siete días para dudas puntuales posteriores a la sesión.",
+        precio: 20000,
+    },
+    {
+        nombre: "Traducción simultánea",
+        descripcion:
+            "Intérprete español-inglés durante toda la sesión, para equipos distribuidos.",
+        precio: 25000,
+    },
+    {
+        nombre: "Resumen ejecutivo para stakeholders",
+        descripcion:
+            "Versión de una página con el impacto de negocio, dirigida a quien toma decisiones.",
+        precio: 18000,
+    },
+    {
+        nombre: "Plan de acción priorizado",
+        descripcion:
+            "Lista ordenada de tareas con esfuerzo estimado y criterio de priorización explícito.",
+        precio: 22000,
+    },
+    {
+        nombre: "Sesión de seguimiento de 30 minutos",
+        descripcion:
+            "Llamada corta dentro del mes siguiente para revisar avances y ajustar el plan.",
+        precio: 28000,
+    },
+    {
+        nombre: "Revisión asincrónica de pull requests",
+        descripcion:
+            "Revisión escrita de hasta cinco pull requests durante la semana posterior a la sesión.",
+        precio: 24000,
+    },
+    {
+        nombre: "Documentación técnica de decisiones",
+        descripcion:
+            "Registro formal de las decisiones tomadas, con contexto, alternativas y consecuencias.",
+        precio: 19000,
+    },
+] as const;
+
+/* ------------------------------------------------------------------ */
+/* Horarios de atención                                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Horario general compartido por todos los profesionales.
+ *
+ * El domingo queda inactivo a propósito: permite demostrar que el sistema
+ * impide crear citas en un día sin atención. El sábado tiene jornada
+ * reducida.
+ */
+export const horariosIniciales = [
+    { numeroDia: 1, horaInicio: "08:00", horaFin: "18:00", activo: true },
+    { numeroDia: 2, horaInicio: "08:00", horaFin: "18:00", activo: true },
+    { numeroDia: 3, horaInicio: "08:00", horaFin: "18:00", activo: true },
+    { numeroDia: 4, horaInicio: "08:00", horaFin: "18:00", activo: true },
+    { numeroDia: 5, horaInicio: "08:00", horaFin: "18:00", activo: true },
+    { numeroDia: 6, horaInicio: "09:00", horaFin: "13:00", activo: true },
+    { numeroDia: 7, horaInicio: "08:00", horaFin: "18:00", activo: false },
+] as const;
+
+/* ------------------------------------------------------------------ */
+/* Restricciones de horario                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * empleadoCorreo en null significa que la restricción aplica a toda la
+ * plataforma. todoElDia en true ignora horaInicio y horaFin.
+ *
+ * Ninguna fecha coincide con una cita existente, y todas caen en días
+ * hábiles del horario de atención para que el bloqueo sea demostrable.
+ */
+export const restriccionesIniciales = [
+    // Generales del establecimiento
+    {
+        tipoNombre: "General del establecimiento",
+        empleadoCorreo: null,
+        fecha: "2026-10-12",
+        horaInicio: null,
+        horaFin: null,
+        todoElDia: true,
+        motivo: "Feriado nacional: Día de las Culturas",
+    },
+    {
+        tipoNombre: "General del establecimiento",
+        empleadoCorreo: null,
+        fecha: "2026-12-24",
+        horaInicio: "12:00",
+        horaFin: "18:00",
+        todoElDia: false,
+        motivo: "Cierre especial de fin de año",
+    },
+
+    // Día completo
+    {
+        tipoNombre: "Día completo",
+        empleadoCorreo: null,
+        fecha: "2026-11-02",
+        horaInicio: null,
+        horaFin: null,
+        todoElDia: true,
+        motivo: "Mantenimiento programado de la plataforma",
+    },
+
+    // Parciales por horas
+    {
+        tipoNombre: "Parcial por horas",
+        empleadoCorreo: null,
+        fecha: "2026-09-22",
+        horaInicio: "12:00",
+        horaFin: "13:00",
+        todoElDia: false,
+        motivo: "Reunión general del equipo de consultores",
+    },
+    {
+        tipoNombre: "Parcial por horas",
+        empleadoCorreo: null,
+        fecha: "2026-10-06",
+        horaInicio: "08:00",
+        horaFin: "10:00",
+        todoElDia: false,
+        motivo: "Capacitación interna sobre la plataforma",
+    },
+
+    // Específicas de empleado
+    {
+        tipoNombre: "Específica de empleado",
+        empleadoCorreo: "empleado.demo@clarity.local",
+        fecha: "2026-09-17",
+        horaInicio: "09:00",
+        horaFin: "11:00",
+        todoElDia: false,
+        motivo: "Capacitación de accesibilidad web",
+    },
+    {
+        tipoNombre: "Específica de empleado",
+        empleadoCorreo: "product.demo@clarity.local",
+        fecha: "2026-09-18",
+        horaInicio: "13:00",
+        horaFin: "15:00",
+        todoElDia: false,
+        motivo: "Cita médica",
+    },
+    {
+        tipoNombre: "Específica de empleado",
+        empleadoCorreo: "techlead.demo@clarity.local",
+        fecha: "2026-09-21",
+        horaInicio: "08:00",
+        horaFin: "10:00",
+        todoElDia: false,
+        motivo: "Reunión interna de arquitectura",
+    },
+    {
+        tipoNombre: "Específica de empleado",
+        empleadoCorreo: "security.demo@clarity.local",
+        fecha: "2026-09-23",
+        horaInicio: null,
+        horaFin: null,
+        todoElDia: true,
+        motivo: "Vacaciones",
+    },
+] as const;
+
 

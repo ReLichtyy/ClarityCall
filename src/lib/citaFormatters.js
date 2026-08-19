@@ -32,6 +32,13 @@ export function formatFecha(value) {
 }
 
 export function formatHora(value) {
+  if (value == null || String(value).trim() === "") {
+    return "Hora no disponible"
+  }
+
+  const timeOnly = String(value).trim().match(/^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d(?:\.\d{1,3})?)?$/)
+  if (timeOnly) return `${timeOnly[1]}:${timeOnly[2]}`
+
   const date = new Date(value)
   return Number.isNaN(date.getTime())
     ? "Hora no disponible"

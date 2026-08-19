@@ -809,3 +809,8 @@ export const citasIniciales = [
             "Conflicto de agenda del cliente. Se coordinará una nueva fecha.",
     },
 ] as const;
+export const serviciosMedicosObsoletos = [
+    "Consulta general",
+    "Terapia física",
+    "Masaje terapéutico",
+] as const;

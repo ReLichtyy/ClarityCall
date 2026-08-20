@@ -89,7 +89,7 @@ export function CitaCard({ cita }) {
       <CardContent className="grid gap-3 text-sm text-text-secondary">
         <div className="flex items-center gap-2">
           <Clock3 className="h-4 w-4 text-primary" aria-hidden="true" />
-          <span>{formatHora(cita.horaInicio)} – {formatHora(cita.horaFin)}</span>
+          <span>{formatHora(cita.horaInicio)} - {formatHora(cita.horaFin)}</span>
         </div>
         {Number.isFinite(duration) && duration > 0 && (
           <div className="flex items-center gap-2">

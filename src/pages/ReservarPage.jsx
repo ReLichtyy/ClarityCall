@@ -85,7 +85,7 @@ export function ReservarPage() {
 
         {isAuthenticated ? (
           <Button asChild size="lg" variant="outline">
-            <Link to="/mis-citas">Ver mis citas</Link>
+            <Link to="/citas">Ver mis citas</Link>
           </Button>
         ) : (
           <Button asChild size="lg" variant="outline">

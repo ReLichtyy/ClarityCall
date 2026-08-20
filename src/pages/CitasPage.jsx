@@ -5,8 +5,14 @@ import { CitaList } from "@/components/CitaList"
 import { PageHeader } from "@/components/PageHeader"
 import { SearchBar } from "@/components/SearchBar"
 import { citaMatchesSearch } from "@/lib/citaFormatters"
-import { CitasApiError, getCitas } from "@/services/citasService"
+import {
+  CitasApiError,
+  getCitas,
+  getCitasPorCliente,
+  getCitasPorEmpleado,
+} from "@/services/citasService"
 import { PageContainer } from "@/components/layout/Container"
+import { useAuth } from "@/auth/useAuth"
 
 function getUserMessage(error) {
   if (error instanceof CitasApiError) return error.message
@@ -14,6 +20,7 @@ function getUserMessage(error) {
 }
 
 export function CitasPage() {
+  const { user } = useAuth()
   const [citas, setCitas] = useState([])
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
@@ -28,7 +35,33 @@ export function CitasPage() {
       setError(null)
 
       try {
-        setCitas(await getCitas({ signal: controller.signal }))
+        const role = user?.rol?.nombre
+        let request
+
+        if (role === "Administrador") {
+          request = getCitas({ signal: controller.signal })
+        } else if (role === "Empleado") {
+          if (!user?.empleado?.id) {
+            throw new CitasApiError(
+              "Tu perfil no tiene un empleado asociado.",
+              "MISSING_EMPLOYEE",
+            )
+          }
+          request = getCitasPorEmpleado(user.empleado.id, {
+            signal: controller.signal,
+          })
+        } else if (role === "Cliente") {
+          request = getCitasPorCliente(user.id, {
+            signal: controller.signal,
+          })
+        } else {
+          throw new CitasApiError(
+            "Tu rol no tiene una vista de citas configurada.",
+            "UNSUPPORTED_ROLE",
+          )
+        }
+
+        setCitas(await request)
       } catch (requestError) {
         if (requestError?.name !== "AbortError") {
           console.error("No se pudieron cargar las citas", requestError)
@@ -41,14 +74,14 @@ export function CitasPage() {
 
     loadCitas()
     return () => controller.abort()
-  }, [reloadKey])
+  }, [reloadKey, user])
 
   const filteredCitas = citas.filter((cita) => citaMatchesSearch(cita, search))
 
   return (
     <PageContainer as="section" aria-labelledby="citas-title">
       <PageHeader
-        title="Citas"
+        title={user?.rol?.nombre === "Cliente" ? "Mis citas" : "Citas"}
         description={filteredCitas.length}
         isBadge
       />
@@ -61,7 +94,7 @@ export function CitasPage() {
 
       {loading && (
         <p className="rounded-xl border border-border-subtle bg-surface p-6 text-center text-text-secondary">
-          Cargando citas…
+          Cargando citas...
         </p>
       )}
 

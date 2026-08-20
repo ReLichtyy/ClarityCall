@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 
 import "./index.css";
 
@@ -16,11 +16,12 @@ import { EspecialidadesPage } from "./pages/EspecialidadesPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { MentorDetailPage } from "./pages/MentorDetailPage";
-import { MisCitasPage } from "./pages/MisCitasPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { NuevaCitaPage } from "./pages/NuevaCitaPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ReservarPage } from "./pages/ReservarPage";
+import { ServicioDetallePage } from "./pages/ServicioDetallePage";
+import { ServiciosPage } from "./pages/ServiciosPage";
 import { TeamPage } from "./pages/TeamPage";
 import { UnauthorizePage } from "./pages/UnauthorizePage";
 
@@ -36,6 +37,8 @@ createRoot(document.getElementById("root")).render(
             <Route path="registro" element={<RegisterPage />} />
             <Route path="team" element={<TeamPage />} />
             <Route path="about-us" element={<About />} />
+            <Route path="servicios" element={<ServiciosPage />} />
+            <Route path="servicios/:id" element={<ServicioDetallePage />} />
             <Route path="unauthorized" element={<UnauthorizePage />} />
 
             {/* Catálogo de especialidades */}
@@ -55,8 +58,10 @@ createRoot(document.getElementById("root")).render(
             {/* Requieren sesión. /citas es la gestión interna de citas,
                 no el flujo de reserva público. */}
             <Route element={<ProtectedRoute />}>
-              {/* Cliente: solo sus propias citas */}
-              <Route path="mis-citas" element={<MisCitasPage />} />
+              {/* Cada rol entra por /citas; la página limita el listado según
+                  la identidad autenticada. La ruta anterior se conserva. */}
+              <Route path="citas" element={<CitasPage />} />
+              <Route path="mis-citas" element={<Navigate to="/citas" replace />} />
 
               {/* Administrador y Empleado. Anidado dentro de ProtectedRoute
                   para que sin sesión se caiga en /login y no en
@@ -66,7 +71,6 @@ createRoot(document.getElementById("root")).render(
                   <RoleRoute allowedRoles={["Administrador", "Empleado"]} />
                 }
               >
-                <Route path="citas" element={<CitasPage />} />
                 <Route path="citas/nueva" element={<NuevaCitaPage />} />
               </Route>
 

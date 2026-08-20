@@ -130,6 +130,28 @@ export async function getCitasPorCliente(clienteId, options = {}) {
   return payload.data
 }
 
+/**
+ * GET /citas/empleado/:empleadoId
+ *
+ * El Empleado solo consulta las citas en las que figura como profesional
+ * asignado. El identificador proviene de usuario.empleado.id en el perfil.
+ */
+export async function getCitasPorEmpleado(empleadoId, options = {}) {
+  const payload = await requestCitas(
+    `/citas/empleado/${encodeURIComponent(empleadoId)}`,
+    options,
+  )
+
+  if (!payload?.success || !Array.isArray(payload.data)) {
+    throw new CitasApiError(
+      "La API devolvió una respuesta inválida.",
+      "INVALID_RESPONSE",
+    )
+  }
+
+  return payload.data
+}
+
 export async function createCita(citaData, options = {}) {
   let response
 

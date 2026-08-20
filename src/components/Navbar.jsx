@@ -6,10 +6,7 @@ import { useAuth } from "@/auth/useAuth";
 import { GradientText } from "./ui/gradient-text";
 
 export function Navbar() {
-  const { isAuthenticated, hasRole, logout } = useAuth();
-
-  const esAdmin = hasRole(["Administrador"]);
-  const esPersonal = hasRole(["Administrador", "Empleado"]);
+  const { isAuthenticated, logout } = useAuth();
 
   const navLinkClass = ({ isActive }) => `
     group relative px-1 py-2
@@ -98,38 +95,14 @@ export function Navbar() {
             )}
           </NavLink>
 
-          {esPersonal && (
-            <NavLink to="/citas" className={navLinkClass}>
-              {({ isActive }) => (
-                <>
-                  Citas
-                  <span className={underlineClass(isActive)} />
-                </>
-              )}
-            </NavLink>
-          )}
-
-          {isAuthenticated && !esPersonal && (
-            <NavLink to="/mis-citas" className={navLinkClass}>
-              {({ isActive }) => (
-                <>
-                  Mis citas
-                  <span className={underlineClass(isActive)} />
-                </>
-              )}
-            </NavLink>
-          )}
-
-          {esAdmin && (
-            <NavLink to="/servicios/nuevo" className={navLinkClass}>
-              {({ isActive }) => (
-                <>
-                  Servicios
-                  <span className={underlineClass(isActive)} />
-                </>
-              )}
-            </NavLink>
-          )}
+          <NavLink to="/servicios" className={navLinkClass}>
+            {({ isActive }) => (
+              <>
+                Servicios
+                <span className={underlineClass(isActive)} />
+              </>
+            )}
+          </NavLink>
 
           <NavLink to="/team" className={navLinkClass}>
             {({ isActive }) => (
@@ -148,6 +121,17 @@ export function Navbar() {
               </>
             )}
           </NavLink>
+
+          {isAuthenticated && (
+            <NavLink to="/citas" className={navLinkClass}>
+              {({ isActive }) => (
+                <>
+                  Citas
+                  <span className={underlineClass(isActive)} />
+                </>
+              )}
+            </NavLink>
+          )}
         </div>
 
         {/* CTA - AGENDAR CITA */}

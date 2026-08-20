@@ -39,6 +39,118 @@ async function extraerMensaje(response, mensajePorDefecto) {
 }
 
 /**
+ * GET /servicios/activos
+ *
+ * Catálogo público. No expone servicios desactivados ni las relaciones
+ * administrativas del listado general.
+ */
+export async function getServiciosActivos(options = {}) {
+  let response
+
+  try {
+    response = await fetch(`${SERVICIOS_API_URL}/servicios/activos`, {
+      headers: { Accept: "application/json" },
+      signal: options.signal,
+    })
+  } catch (error) {
+    if (error?.name === "AbortError") throw error
+    throw new ServiciosApiError(
+      "No se pudo conectar con la API de servicios.",
+      "NETWORK_ERROR",
+      null,
+      { cause: error },
+    )
+  }
+
+  if (!response.ok) {
+    throw new ServiciosApiError(
+      await extraerMensaje(response, "No se pudieron cargar los servicios."),
+      "HTTP_ERROR",
+      response.status,
+    )
+  }
+
+  let payload
+  try {
+    payload = await response.json()
+  } catch (error) {
+    throw new ServiciosApiError(
+      "La API devolvió una respuesta inválida.",
+      "INVALID_RESPONSE",
+      response.status,
+      { cause: error },
+    )
+  }
+
+  if (!payload?.success || !Array.isArray(payload.data)) {
+    throw new ServiciosApiError(
+      "La API devolvió una respuesta inválida.",
+      "INVALID_RESPONSE",
+      response.status,
+    )
+  }
+
+  return payload.data
+}
+
+/**
+ * GET /servicios/:id
+ *
+ * Obtiene la ficha completa que alimenta la vista pública de detalles.
+ */
+export async function getServicioById(id, options = {}) {
+  let response
+
+  try {
+    response = await fetch(
+      `${SERVICIOS_API_URL}/servicios/${encodeURIComponent(id)}`,
+      {
+        headers: { Accept: "application/json" },
+        signal: options.signal,
+      },
+    )
+  } catch (error) {
+    if (error?.name === "AbortError") throw error
+    throw new ServiciosApiError(
+      "No se pudo conectar con la API de servicios.",
+      "NETWORK_ERROR",
+      null,
+      { cause: error },
+    )
+  }
+
+  if (!response.ok) {
+    throw new ServiciosApiError(
+      await extraerMensaje(response, "No se pudo cargar el servicio."),
+      "HTTP_ERROR",
+      response.status,
+    )
+  }
+
+  let payload
+  try {
+    payload = await response.json()
+  } catch (error) {
+    throw new ServiciosApiError(
+      "La API devolvió una respuesta inválida.",
+      "INVALID_RESPONSE",
+      response.status,
+      { cause: error },
+    )
+  }
+
+  if (!payload?.success || !payload.data) {
+    throw new ServiciosApiError(
+      "La API devolvió una respuesta inválida.",
+      "INVALID_RESPONSE",
+      response.status,
+    )
+  }
+
+  return payload.data
+}
+
+/**
  * POST /servicios
  *
  * createServicioSchema es strict: solo acepta nombre, descripcion,

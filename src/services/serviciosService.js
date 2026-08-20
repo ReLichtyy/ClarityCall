@@ -20,6 +20,18 @@ export class ServiciosApiError extends Error {
 async function extraerMensaje(response, mensajePorDefecto) {
   try {
     const data = await response.json()
+
+    // Ante un 400 de validación el API devuelve el detalle por campo en
+    // validationErrors y deja en message un genérico ("Datos de entrada
+    // inválidos"). Se prefiere el detalle, que sí le dice al usuario qué
+    // corregir.
+    if (Array.isArray(data?.validationErrors) && data.validationErrors.length > 0) {
+      return data.validationErrors
+        .map((item) => item?.message)
+        .filter(Boolean)
+        .join(" ")
+    }
+
     return data?.message || mensajePorDefecto
   } catch {
     return mensajePorDefecto

@@ -16,6 +16,7 @@ import { EspecialidadesPage } from "./pages/EspecialidadesPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { MentorDetailPage } from "./pages/MentorDetailPage";
+import { MisCitasPage } from "./pages/MisCitasPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { NuevaCitaPage } from "./pages/NuevaCitaPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -32,7 +33,7 @@ createRoot(document.getElementById("root")).render(
             {/* Públicas */}
             <Route index element={<HomePage />} />
             <Route path="login" element={<LoginPage />} />
-            <Route path="register" element={<RegisterPage />} />
+            <Route path="registro" element={<RegisterPage />} />
             <Route path="team" element={<TeamPage />} />
             <Route path="about-us" element={<About />} />
             <Route path="unauthorized" element={<UnauthorizePage />} />
@@ -47,18 +48,29 @@ createRoot(document.getElementById("root")).render(
             {/* Perfil de mentor */}
             <Route path="mentores/:id" element={<MentorDetailPage />} />
 
-            {/* Flujo de reserva del usuario */}
+            {/* Informativa: el Cliente no crea citas (matriz de permisos).
+                La creación real vive en /citas/nueva. */}
             <Route path="reservar" element={<ReservarPage />} />
 
             {/* Requieren sesión. /citas es la gestión interna de citas,
                 no el flujo de reserva público. */}
             <Route element={<ProtectedRoute />}>
-              <Route path="citas" element={<CitasPage />} />
-              <Route path="AgendarCita" element={<NuevaCitaPage />} />
+              {/* Cliente: solo sus propias citas */}
+              <Route path="mis-citas" element={<MisCitasPage />} />
 
-              {/* Mantenimiento: solo Administrador. Va anidado dentro de
-                  ProtectedRoute para que quien no tenga sesión caiga en
-                  /login y no en /unauthorized. */}
+              {/* Administrador y Empleado. Anidado dentro de ProtectedRoute
+                  para que sin sesión se caiga en /login y no en
+                  /unauthorized. */}
+              <Route
+                element={
+                  <RoleRoute allowedRoles={["Administrador", "Empleado"]} />
+                }
+              >
+                <Route path="citas" element={<CitasPage />} />
+                <Route path="citas/nueva" element={<NuevaCitaPage />} />
+              </Route>
+
+              {/* Mantenimiento de servicios: solo Administrador */}
               <Route element={<RoleRoute allowedRoles={["Administrador"]} />}>
                 <Route path="servicios/nuevo" element={<CrearServicioPage />} />
               </Route>

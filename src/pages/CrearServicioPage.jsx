@@ -1,232 +1,135 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import { CheckCircle2, Upload, X } from "lucide-react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import toast from "react-hot-toast"
+import { Image } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
-import { PageContainer } from "@/components/layout/Container"
-import { CampoFormulario } from "@/components/form/CampoFormulario"
-import { DirectorioApiError, getEspecialidades } from "@/services/teamService"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import {
-  IMAGEN_TAMANO_MAXIMO,
-  IMAGEN_TIPOS_PERMITIDOS,
-  ServiciosApiError,
-  crearServicio,
-  subirImagen,
-} from "@/services/serviciosService"
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card"
+import { FormError } from "@/components/FormError"
+import { PageContainer } from "@/components/layout/Container"
+import { servicioSchema } from "@/schemas/servicioSchema"
+import { crearServicio, subirImagen } from "@/services/serviciosService"
+import { getEspecialidades } from "@/services/teamService"
 import { slugify } from "@/lib/slug"
 
-const ESTADO_INICIAL = {
-  nombre: "",
-  descripcion: "",
-  precioBase: "",
-  duracionMinutos: "",
-  especialidadId: "",
-}
-
-/**
- * Valida en el cliente las mismas reglas de createServicioSchema, para no
- * gastar un viaje al API en errores evidentes. El API sigue siendo la
- * autoridad: lo que aquí pase igual se revalida allá.
- */
-function validar(form) {
-  const errores = {}
-
-  const nombre = form.nombre.trim()
-  if (nombre.length < 3) {
-    errores.nombre = "El nombre debe contener al menos 3 caracteres."
-  } else if (nombre.length > 120) {
-    errores.nombre = "El nombre no puede superar 120 caracteres."
-  }
-
-  const descripcion = form.descripcion.trim()
-  if (descripcion.length < 10) {
-    errores.descripcion = "La descripción debe contener al menos 10 caracteres."
-  } else if (descripcion.length > 500) {
-    errores.descripcion = "La descripción no puede superar 500 caracteres."
-  }
-
-  const precio = Number(form.precioBase)
-  if (!form.precioBase.trim() || !Number.isFinite(precio)) {
-    errores.precioBase = "El precio es obligatorio y debe ser numérico."
-  } else if (precio <= 0) {
-    errores.precioBase = "El precio debe ser mayor a cero."
-  } else if (precio > 99999999.99) {
-    errores.precioBase = "El precio no puede superar 99.999.999,99."
-  }
-
-  const duracion = Number(form.duracionMinutos)
-  if (!form.duracionMinutos.trim() || !Number.isFinite(duracion)) {
-    errores.duracionMinutos = "La duración es obligatoria y debe ser numérica."
-  } else if (!Number.isInteger(duracion)) {
-    errores.duracionMinutos = "La duración debe ser un número entero."
-  } else if (duracion < 15) {
-    errores.duracionMinutos = "La duración mínima es de 15 minutos."
-  } else if (duracion > 480) {
-    errores.duracionMinutos = "La duración no puede superar 480 minutos."
-  }
-
-  if (!form.especialidadId) {
-    errores.especialidadId = "Selecciona una especialidad."
-  }
-
-  return errores
-}
-
 export function CrearServicioPage() {
-  const [form, setForm] = useState(ESTADO_INICIAL)
-  const [errores, setErrores] = useState({})
-  const [errorGeneral, setErrorGeneral] = useState(null)
-  const [creado, setCreado] = useState(null)
-  const [enviando, setEnviando] = useState(false)
-
   const [especialidades, setEspecialidades] = useState([])
-  const [cargandoEspecialidades, setCargandoEspecialidades] = useState(true)
-  const [errorEspecialidades, setErrorEspecialidades] = useState(null)
-  const [intento, setIntento] = useState(0)
-
-  const [archivo, setArchivo] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [vistaPrevia, setVistaPrevia] = useState(null)
-  const [errorImagen, setErrorImagen] = useState(null)
-  // Si la creación falla después de subir, se reutiliza el archivo ya
-  // subido en lugar de dejar otro huérfano en el servidor.
-  const [imagenSubida, setImagenSubida] = useState(null)
-  const inputArchivo = useRef(null)
+  const [creado, setCreado] = useState(null)
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset
+  } = useForm({
+    resolver: zodResolver(servicioSchema),
+    defaultValues: {
+      nombre: "",
+      descripcion: "",
+      precioBase: "",
+      duracionMinutos: "",
+      especialidadId: "",
+      imagen: undefined
+    }
+  })
 
   useEffect(() => {
-    const controlador = new AbortController()
-
-    async function cargar() {
-      setCargandoEspecialidades(true)
-      setErrorEspecialidades(null)
+    async function cargarEspecialidades() {
+      setLoading(true)
+      setError(null)
 
       try {
-        const datos = await getEspecialidades({ signal: controlador.signal })
-        setEspecialidades(datos.filter((item) => item?.activo !== false))
+        const datos = await getEspecialidades()
+        setEspecialidades(datos.filter((item) => item.activo !== false))
       } catch (fallo) {
-        if (fallo?.name !== "AbortError") {
-          console.error("No se pudieron cargar las especialidades", fallo)
-          setErrorEspecialidades(
-            fallo instanceof DirectorioApiError
-              ? fallo.message
-              : "No se pudieron cargar las especialidades.",
-          )
-        }
+        setError("No se pudieron cargar las especialidades.")
       } finally {
-        if (!controlador.signal.aborted) setCargandoEspecialidades(false)
+        setLoading(false)
       }
     }
 
-    cargar()
-    return () => controlador.abort()
-  }, [intento])
+    cargarEspecialidades()
+  }, [])
 
-  // La URL temporal de la vista previa se libera al cambiarla o al salir.
   useEffect(() => {
-    if (!vistaPrevia) return undefined
-    return () => URL.revokeObjectURL(vistaPrevia)
+    return () => {
+      if (vistaPrevia) {
+        URL.revokeObjectURL(vistaPrevia)
+      }
+    }
   }, [vistaPrevia])
 
-  function handleChange(evento) {
-    const { name, value } = evento.target
-    setForm((actual) => ({ ...actual, [name]: value }))
-    setErrores((actual) => ({ ...actual, [name]: undefined }))
-    setCreado(null)
-  }
+  function handleImageChange(event) {
+    const file = event.target.files?.[0]
 
-  function handleArchivo(evento) {
-    const seleccionado = evento.target.files?.[0] ?? null
-    setErrorImagen(null)
-    setImagenSubida(null)
-    setCreado(null)
-
-    if (!seleccionado) {
-      setArchivo(null)
+    if (!file) {
       setVistaPrevia(null)
       return
     }
 
-    if (!IMAGEN_TIPOS_PERMITIDOS.includes(seleccionado.type)) {
-      setErrorImagen("Solo se permiten imágenes JPG, PNG o WEBP.")
-      setArchivo(null)
-      setVistaPrevia(null)
-      return
-    }
-
-    if (seleccionado.size > IMAGEN_TAMANO_MAXIMO) {
-      setErrorImagen("La imagen no debe superar los 2 MB.")
-      setArchivo(null)
-      setVistaPrevia(null)
-      return
-    }
-
-    setArchivo(seleccionado)
-    setVistaPrevia(URL.createObjectURL(seleccionado))
+    setVistaPrevia(URL.createObjectURL(file))
   }
 
-  function quitarImagen() {
-    setArchivo(null)
-    setVistaPrevia(null)
-    setImagenSubida(null)
-    setErrorImagen(null)
-    if (inputArchivo.current) inputArchivo.current.value = ""
-  }
-
-  function limpiarFormulario() {
-    setForm(ESTADO_INICIAL)
-    setErrores({})
-    quitarImagen()
-  }
-
-  async function handleSubmit(evento) {
-    evento.preventDefault()
-    setErrorGeneral(null)
-    setCreado(null)
-
-    const encontrados = validar(form)
-    if (Object.keys(encontrados).length > 0) {
-      setErrores(encontrados)
-      return
-    }
-
-    setErrores({})
-    setEnviando(true)
-
+  async function handleValidSubmit(formData) {
     try {
-      let imagen = imagenSubida
-
-      if (archivo && !imagen) {
-        imagen = await subirImagen(archivo)
-        setImagenSubida(imagen)
-      }
+      const nombreArchivo = await subirImagen(formData.imagen[0])
 
       const servicio = await crearServicio({
-        nombre: form.nombre.trim(),
-        descripcion: form.descripcion.trim(),
-        precioBase: Number(form.precioBase),
-        duracionMinutos: Number(form.duracionMinutos),
-        especialidadId: Number(form.especialidadId),
-        imagen: imagen ?? null,
+        nombre: formData.nombre.trim(),
+        descripcion: formData.descripcion.trim(),
+        precioBase: formData.precioBase,
+        duracionMinutos: formData.duracionMinutos,
+        especialidadId: formData.especialidadId,
+        imagen: nombreArchivo
       })
 
+      toast.success(`Servicio "${servicio.nombre}" creado correctamente.`)
       setCreado(servicio)
-      limpiarFormulario()
+      reset()
+      setVistaPrevia(null)
     } catch (fallo) {
-      if (fallo instanceof ServiciosApiError && fallo.code === "NOMBRE_DUPLICADO") {
-        setErrores((actual) => ({
-          ...actual,
-          nombre: "Ya existe un servicio con ese nombre.",
-        }))
-        setErrorGeneral(null)
-      } else {
-        console.error("No se pudo crear el servicio", fallo)
-        setErrorGeneral(
-          fallo?.message || "No se pudo crear el servicio.",
-        )
-      }
-    } finally {
-      setEnviando(false)
+      toast.error(fallo.message || "No se pudo crear el servicio.")
     }
+  }
+
+  function handleClearForm() {
+    reset()
+    setVistaPrevia(null)
+    setCreado(null)
+  }
+
+  if (loading) {
+    return (
+      <PageContainer>
+        <p className="py-16 text-center text-text-secondary">
+          Cargando especialidades...
+        </p>
+      </PageContainer>
+    )
+  }
+
+  if (error) {
+    return (
+      <PageContainer>
+        <p className="py-16 text-center text-danger" role="alert">
+          {error}
+        </p>
+      </PageContainer>
+    )
   }
 
   const especialidadCreada = creado
@@ -234,214 +137,202 @@ export function CrearServicioPage() {
     : null
 
   return (
-    <PageContainer as="section" size="narrow" aria-labelledby="crear-servicio-titulo">
-      <p className="font-mono text-[0.7rem] uppercase tracking-[0.2em] text-text-muted">
-        Mantenimiento
-      </p>
-
+    <PageContainer as="section" aria-labelledby="crear-servicio-titulo">
       <h1
         id="crear-servicio-titulo"
-        className="mt-4 text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
+        className="mb-2 text-3xl font-bold tracking-tight text-foreground"
       >
         Crear servicio
       </h1>
 
-      <p className="mt-4 max-w-xl text-pretty leading-relaxed text-text-secondary">
-        Registra un tipo de sesión y asócialo a una especialidad. Los servicios
-        activos son los que se ofrecen al reservar.
+      <p className="mb-8 text-text-secondary">
+        Registra un tipo de sesión y asócialo a una especialidad.
       </p>
 
-      {creado && (
-        <div
-          role="status"
-          className="mt-10 rounded-xl border border-success/30 bg-success-subtle p-5"
-        >
-          <p className="flex items-center gap-2 text-sm font-medium text-success">
-            <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-            Servicio «{creado.nombre}» creado correctamente.
-          </p>
-          {especialidadCreada && (
-            <Link
-              to={`/especialidades/${slugify(especialidadCreada.nombre)}`}
-              className="mt-3 inline-block rounded-lg text-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              Verlo en {especialidadCreada.nombre}
-            </Link>
-          )}
-        </div>
+      {creado && especialidadCreada && (
+        <p className="mb-6 rounded-xl border border-success/30 bg-success-subtle p-4 text-sm text-success">
+          Servicio &laquo;{creado.nombre}&raquo; creado.{" "}
+          <Link
+            to={`/especialidades/${slugify(especialidadCreada.nombre)}`}
+            className="font-medium underline"
+          >
+            Verlo en {especialidadCreada.nombre}
+          </Link>
+        </p>
       )}
 
-      <form onSubmit={handleSubmit} className="mt-10 space-y-6" noValidate>
-        <CampoFormulario
-          id="nombre"
-          etiqueta="Nombre del servicio"
-          ayuda="Entre 3 y 120 caracteres. Debe ser único."
-          error={errores.nombre}
-          value={form.nombre}
-          onChange={handleChange}
-          placeholder="Revisión de arquitectura - Virtual"
-          maxLength={120}
-        />
+      <Card className="border-border-subtle">
+        <CardHeader>
+          <CardTitle className="text-2xl">Datos del servicio</CardTitle>
+          <CardDescription>
+            Complete la información principal del servicio.
+          </CardDescription>
+        </CardHeader>
 
-        <CampoFormulario
-          id="descripcion"
-          as="textarea"
-          etiqueta="Descripción"
-          ayuda={`Entre 10 y 500 caracteres. ${form.descripcion.trim().length}/500`}
-          error={errores.descripcion}
-          value={form.descripcion}
-          onChange={handleChange}
-          placeholder="Qué incluye la sesión y con qué sale la persona."
-          maxLength={500}
-        />
+        <form onSubmit={handleSubmit(handleValidSubmit)}>
+          <CardContent className="grid gap-5 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <label htmlFor="nombre" className="mb-2 block text-sm font-medium">
+                Nombre del servicio
+              </label>
 
-        <div className="grid gap-6 sm:grid-cols-2">
-          <CampoFormulario
-            id="precioBase"
-            etiqueta="Precio base"
-            ayuda="En colones, mayor a cero."
-            error={errores.precioBase}
-            type="number"
-            inputMode="decimal"
-            min="0.01"
-            step="0.01"
-            value={form.precioBase}
-            onChange={handleChange}
-            placeholder="35000"
-          />
+              <Input
+                id="nombre"
+                placeholder="Ej: Revisión de arquitectura - Virtual"
+                className={errors.nombre ? "border-destructive" : ""}
+                {...register("nombre")}
+              />
 
-          <CampoFormulario
-            id="duracionMinutos"
-            etiqueta="Duración (minutos)"
-            ayuda="Entre 15 y 480 minutos."
-            error={errores.duracionMinutos}
-            type="number"
-            inputMode="numeric"
-            min="15"
-            max="480"
-            step="15"
-            value={form.duracionMinutos}
-            onChange={handleChange}
-            placeholder="60"
-          />
-        </div>
+              <FormError message={errors.nombre?.message} />
+            </div>
 
-        <CampoFormulario
-          id="especialidadId"
-          etiqueta="Especialidad"
-          error={errores.especialidadId || errorEspecialidades}
-        >
-          {(comunes) =>
-            cargandoEspecialidades ? (
-              <Skeleton className="h-8 w-full" />
-            ) : errorEspecialidades ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIntento((valor) => valor + 1)}
+            <div className="md:col-span-2">
+              <label htmlFor="descripcion" className="mb-2 block text-sm font-medium">
+                Descripción
+              </label>
+
+              <Textarea
+                id="descripcion"
+                rows={4}
+                placeholder="Qué incluye la sesión y con qué sale la persona."
+                className={errors.descripcion ? "border-destructive" : ""}
+                {...register("descripcion")}
+              />
+
+              <FormError message={errors.descripcion?.message} />
+            </div>
+
+            <div>
+              <label htmlFor="precioBase" className="mb-2 block text-sm font-medium">
+                Precio base
+              </label>
+
+              <Input
+                id="precioBase"
+                type="number"
+                min="1"
+                step="0.01"
+                placeholder="Ej: 35000"
+                className={errors.precioBase ? "border-destructive" : ""}
+                {...register("precioBase")}
+              />
+
+              <FormError message={errors.precioBase?.message} />
+            </div>
+
+            <div>
+              <label
+                htmlFor="duracionMinutos"
+                className="mb-2 block text-sm font-medium"
               >
-                Reintentar carga
-              </Button>
-            ) : (
+                Duración (minutos)
+              </label>
+
+              <Input
+                id="duracionMinutos"
+                type="number"
+                min="15"
+                max="480"
+                step="15"
+                placeholder="Ej: 60"
+                className={errors.duracionMinutos ? "border-destructive" : ""}
+                {...register("duracionMinutos")}
+              />
+
+              <FormError message={errors.duracionMinutos?.message} />
+            </div>
+
+            <div className="md:col-span-2">
+              <label
+                htmlFor="especialidadId"
+                className="mb-2 block text-sm font-medium"
+              >
+                Especialidad
+              </label>
+
               <select
-                {...comunes}
-                value={form.especialidadId}
-                onChange={handleChange}
-                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30"
+                id="especialidadId"
+                className={`flex h-10 w-full rounded-lg border bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 ${
+                  errors.especialidadId ? "border-destructive" : "border-input"
+                }`}
+                {...register("especialidadId")}
               >
-                <option value="">Selecciona una especialidad</option>
+                <option value="">Seleccione una especialidad</option>
                 {especialidades.map((especialidad) => (
                   <option key={especialidad.id} value={especialidad.id}>
                     {especialidad.nombre}
                   </option>
                 ))}
               </select>
-            )
-          }
-        </CampoFormulario>
 
-        <div className="space-y-2">
-          <span className="block text-sm font-medium text-foreground">
-            Imagen <span className="font-normal text-text-muted">(opcional)</span>
-          </span>
-
-          <input
-            ref={inputArchivo}
-            id="imagen"
-            name="imagen"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={handleArchivo}
-            aria-describedby="imagen-ayuda"
-            aria-invalid={errorImagen ? true : undefined}
-            className="block w-full cursor-pointer rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm text-text-secondary outline-none transition-colors file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-surface-elevated file:px-3 file:py-1 file:text-sm file:font-medium file:text-foreground hover:border-border-strong focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          />
-
-          <p id="imagen-ayuda" className="text-xs text-text-muted">
-            JPG, PNG o WEBP. Máximo 2 MB. Se sube al guardar el servicio.
-          </p>
-
-          {errorImagen && <p className="text-xs text-danger">{errorImagen}</p>}
-
-          {vistaPrevia && (
-            <div className="mt-3 flex items-center gap-4 rounded-xl border border-border-subtle bg-surface p-3">
-              <img
-                src={vistaPrevia}
-                alt={`Vista previa de la imagen de ${form.nombre.trim() || "el servicio"}`}
-                className="h-16 w-16 rounded-lg object-cover"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm text-foreground">{archivo?.name}</p>
-                <p className="font-mono text-[0.7rem] uppercase tracking-[0.12em] text-text-muted">
-                  {(archivo.size / 1024).toFixed(0)} KB
-                  {imagenSubida ? " · ya subida" : ""}
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                onClick={quitarImagen}
-                aria-label="Quitar la imagen seleccionada"
-              >
-                <X aria-hidden="true" />
-              </Button>
+              <FormError message={errors.especialidadId?.message} />
             </div>
-          )}
-        </div>
 
-        {errorGeneral && (
-          <p
-            role="alert"
-            className="rounded-xl border border-danger/30 bg-danger-subtle p-4 text-sm text-danger"
-          >
-            {errorGeneral}
-          </p>
-        )}
+            <div className="md:col-span-2">
+              <label htmlFor="imagen" className="mb-2 block text-sm font-medium">
+                Imagen del servicio
+              </label>
 
-        <div className="flex flex-col gap-3 pt-2 sm:flex-row">
-          <Button type="submit" size="lg" disabled={enviando}>
-            {enviando ? (
-              "Guardando…"
-            ) : (
-              <>
-                <Upload aria-hidden="true" />
-                Crear servicio
-              </>
-            )}
-          </Button>
+              <div
+                className={`grid gap-4 rounded-xl border border-dashed bg-surface p-4 md:grid-cols-[220px_1fr] ${
+                  errors.imagen ? "border-destructive" : "border-border-default"
+                }`}
+              >
+                <div className="flex h-40 items-center justify-center overflow-hidden rounded-lg border border-border-subtle bg-background">
+                  {vistaPrevia ? (
+                    <img
+                      src={vistaPrevia}
+                      alt="Vista previa del servicio"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center text-center text-text-muted">
+                      <Image className="mb-2 h-10 w-10" />
+                      <span className="text-sm font-medium">Vista previa</span>
+                      <span className="text-xs">Sin imagen seleccionada</span>
+                    </div>
+                  )}
+                </div>
 
-          <Button
-            type="button"
-            size="lg"
-            variant="outline"
-            onClick={limpiarFormulario}
-            disabled={enviando}
-          >
-            Limpiar
-          </Button>
-        </div>
-      </form>
+                <div className="flex flex-col justify-center gap-3">
+                  <div>
+                    <Input
+                      id="imagen"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="hidden"
+                      {...register("imagen", { onChange: handleImageChange })}
+                    />
+
+                    <label
+                      htmlFor="imagen"
+                      className="inline-flex cursor-pointer items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                    >
+                      Seleccionar imagen
+                    </label>
+                  </div>
+
+                  <p className="text-xs text-text-muted">
+                    Formatos permitidos: PNG, JPG o WEBP. Máximo 2 MB.
+                  </p>
+
+                  <FormError message={errors.imagen?.message} />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+
+          <CardFooter className="flex flex-col-reverse gap-3 border-t border-border-subtle pt-6 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" onClick={handleClearForm}>
+              Limpiar
+            </Button>
+
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Registrando..." : "Registrar servicio"}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
     </PageContainer>
   )
 }

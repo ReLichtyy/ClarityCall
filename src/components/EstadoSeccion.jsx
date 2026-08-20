@@ -1,3 +1,4 @@
+import PropTypes from "prop-types"
 import { Button } from "@/components/ui/button"
 
 /**
@@ -46,4 +47,14 @@ export function EstadoSeccion({
   }
 
   return children
+}
+
+EstadoSeccion.propTypes = {
+  cargando: PropTypes.bool,
+  error: PropTypes.string,
+  vacio: PropTypes.bool,
+  skeleton: PropTypes.node,
+  mensajeVacio: PropTypes.string,
+  onReintentar: PropTypes.func,
+  children: PropTypes.node,
 }

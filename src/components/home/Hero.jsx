@@ -1,3 +1,4 @@
+import PropTypes from "prop-types"
 import { Link } from "react-router-dom"
 import { ArrowDown, ArrowRight } from "lucide-react"
 
@@ -108,4 +109,8 @@ export function Hero({ idSiguienteSeccion = "como-funciona" }) {
       </Container>
     </section>
   )
+}
+
+Hero.propTypes = {
+  idSiguienteSeccion: PropTypes.string,
 }

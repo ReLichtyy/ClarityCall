@@ -1,9 +1,13 @@
-import { useState } from "react"
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import toast from "react-hot-toast"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { FormError } from "@/components/FormError"
 import { PageHeader } from "@/components/PageHeader"
+import { loginSchema } from "@/schemas/loginSchema"
 import { useAuth } from "@/auth/useAuth"
 
 export function LoginPage() {
@@ -11,96 +15,90 @@ export function LoginPage() {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const [correo, setCorreo] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState(null)
-  const [enviando, setEnviando] = useState(false)
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting }
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      correo: "",
+      password: ""
+    }
+  })
 
-  const destino = location.state?.from?.pathname ?? "/citas"
-  const mensajeExito = location.state?.mensaje ?? null
+  const destino = location.state?.from?.pathname ?? "/"
 
   if (!loading && isAuthenticated) {
     return <Navigate to={destino} replace />
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault()
-    setError(null)
-    setEnviando(true)
-
+  async function handleValidSubmit(formData) {
     try {
-      await login({ correo: correo.trim().toLowerCase(), password })
+      await login({
+        correo: formData.correo.trim().toLowerCase(),
+        password: formData.password
+      })
+      toast.success("Sesión iniciada correctamente.")
       navigate(destino, { replace: true })
-    } catch (loginError) {
-      setError(loginError.message || "No se pudo iniciar sesión.")
-    } finally {
-      setEnviando(false)
+    } catch (error) {
+      toast.error(error.message || "No se pudo iniciar sesión.")
     }
   }
 
   return (
-    <section aria-labelledby="login-title" className="mx-auto w-full max-w-md px-4 py-12 sm:py-16">
+    <section
+      aria-labelledby="login-title"
+      className="mx-auto w-full max-w-md px-4 py-12 sm:py-16"
+    >
       <PageHeader
         title="Iniciar sesión"
         description="Accede para gestionar tus sesiones de consultoría"
       />
 
-      {mensajeExito && (
-        <p className="mb-6 rounded-xl border border-success/30 bg-success-subtle p-4 text-sm text-success">
-          {mensajeExito}
-        </p>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-        <div className="space-y-2">
-          <label htmlFor="correo" className="text-sm font-medium text-foreground">
+      <form onSubmit={handleSubmit(handleValidSubmit)} className="space-y-5">
+        <div>
+          <label htmlFor="correo" className="mb-2 block text-sm font-medium">
             Correo electrónico
           </label>
+
           <Input
             id="correo"
-            name="correo"
             type="email"
             autoComplete="email"
-            required
-            value={correo}
-            onChange={(event) => setCorreo(event.target.value)}
             placeholder="persona@ejemplo.com"
+            className={errors.correo ? "border-destructive" : ""}
+            {...register("correo")}
           />
+
+          <FormError message={errors.correo?.message} />
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor="password" className="text-sm font-medium text-foreground">
+        <div>
+          <label htmlFor="password" className="mb-2 block text-sm font-medium">
             Contraseña
           </label>
+
           <Input
             id="password"
-            name="password"
             type="password"
             autoComplete="current-password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
             placeholder="••••••••"
+            className={errors.password ? "border-destructive" : ""}
+            {...register("password")}
           />
+
+          <FormError message={errors.password?.message} />
         </div>
 
-        {error && (
-          <p
-            role="alert"
-            className="rounded-xl border border-danger/30 bg-danger-subtle p-4 text-sm text-danger"
-          >
-            {error}
-          </p>
-        )}
-
-        <Button type="submit" size="lg" className="w-full" disabled={enviando}>
-          {enviando ? "Ingresando…" : "Ingresar"}
+        <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? "Ingresando..." : "Ingresar"}
         </Button>
       </form>
 
       <p className="mt-6 text-center text-sm text-text-secondary">
         ¿No tienes cuenta?{" "}
-        <Link to="/register" className="font-medium text-primary hover:underline">
+        <Link to="/registro" className="font-medium text-primary hover:underline">
           Regístrate
         </Link>
       </p>

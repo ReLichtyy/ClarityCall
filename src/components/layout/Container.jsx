@@ -1,3 +1,4 @@
+import PropTypes from "prop-types"
 import { cn } from "@/lib/utils"
 
 /**
@@ -32,4 +33,16 @@ export function PageContainer({ className, children, ...props }) {
       {children}
     </Container>
   )
+}
+
+Container.propTypes = {
+  as: PropTypes.elementType,
+  size: PropTypes.oneOf(["default", "wide", "narrow"]),
+  className: PropTypes.string,
+  children: PropTypes.node,
+}
+
+PageContainer.propTypes = {
+  className: PropTypes.string,
+  children: PropTypes.node,
 }

@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from "motion/react"
+import PropTypes from "prop-types"
 
 import { Container } from "@/components/layout/Container"
 
@@ -29,8 +29,6 @@ const PASOS = [
  * unidos por un conector continuo y no separados en tarjetas sueltas.
  */
 export function ComoFunciona({ id = "como-funciona" }) {
-  const reduce = useReducedMotion()
-
   return (
     <section
       id={id}
@@ -58,13 +56,9 @@ export function ComoFunciona({ id = "como-funciona" }) {
               <li key={paso.numero} className="relative pl-9 sm:pl-0 sm:pt-14">
                 {/* Conector: vertical en móvil, horizontal en escritorio. */}
                 {!esUltimo && (
-                  <motion.span
+                  <span
                     aria-hidden="true"
                     className="absolute left-[7px] top-7 h-[calc(100%+1.5rem)] w-px bg-border-default sm:left-5 sm:-right-10 sm:top-[7px] sm:h-px sm:w-auto"
-                    initial={reduce ? false : { opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    viewport={{ once: true, amount: 0.5 }}
-                    transition={{ duration: 0.6, ease: "easeOut" }}
                   />
                 )}
 
@@ -92,4 +86,8 @@ export function ComoFunciona({ id = "como-funciona" }) {
       </Container>
     </section>
   )
+}
+
+ComoFunciona.propTypes = {
+  id: PropTypes.string,
 }

@@ -1,3 +1,4 @@
+import PropTypes from "prop-types"
 import { Link } from "react-router-dom"
 import { ArrowRight } from "lucide-react"
 
@@ -76,4 +77,14 @@ export function MentorCard({ mentor }) {
       </CardFooter>
     </Card>
   )
+}
+
+MentorCard.propTypes = {
+  mentor: PropTypes.shape({
+    id: PropTypes.number,
+    descripcion: PropTypes.string,
+    usuario: PropTypes.object,
+    especialidad: PropTypes.object,
+    servicios: PropTypes.array,
+  }),
 }

@@ -108,6 +108,28 @@ export async function getCitaById(id, options = {}) {
   return payload.data
 }
 
+/**
+ * GET /citas/cliente/:clienteId
+ *
+ * El Cliente solo puede consultar sus propias citas, según la matriz de
+ * permisos del enunciado.
+ */
+export async function getCitasPorCliente(clienteId, options = {}) {
+  const payload = await requestCitas(
+    `/citas/cliente/${encodeURIComponent(clienteId)}`,
+    options,
+  )
+
+  if (!payload?.success || !Array.isArray(payload.data)) {
+    throw new CitasApiError(
+      "La API devolvió una respuesta inválida.",
+      "INVALID_RESPONSE",
+    )
+  }
+
+  return payload.data
+}
+
 export async function createCita(citaData, options = {}) {
   let response
 

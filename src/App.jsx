@@ -1,4 +1,5 @@
 import { Outlet } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 
 import { Footer } from "./components/Footer";
 import { Navbar } from "./components/Navbar";
@@ -13,6 +14,8 @@ export default function App() {
       </main>
 
       <Footer />
+
+      <Toaster position="top-right" />
     </div>
   );
 }

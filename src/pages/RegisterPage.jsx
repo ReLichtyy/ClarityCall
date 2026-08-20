@@ -1,231 +1,173 @@
-import { useState } from "react"
 import { Link, Navigate, useNavigate } from "react-router-dom"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import toast from "react-hot-toast"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { FormError } from "@/components/FormError"
 import { PageHeader } from "@/components/PageHeader"
+import { registroSchema } from "@/schemas/registroSchema"
 import { registerUser } from "@/services/authService"
 import { useAuth } from "@/auth/useAuth"
-
-const ESTADO_INICIAL = {
-  nombre: "",
-  primerApellido: "",
-  segundoApellido: "",
-  correo: "",
-  telefono: "",
-  password: "",
-}
-
-/**
- * Valida en el cliente las mismas reglas de registerClienteSchema
- * para no gastar un viaje al API en errores evidentes.
- */
-function validar(form) {
-  if (form.nombre.trim().length < 2) {
-    return "El nombre debe contener al menos 2 caracteres."
-  }
-
-  if (form.primerApellido.trim().length < 2) {
-    return "El primer apellido debe contener al menos 2 caracteres."
-  }
-
-  const segundoApellido = form.segundoApellido.trim()
-  if (segundoApellido && segundoApellido.length < 2) {
-    return "El segundo apellido debe contener al menos 2 caracteres."
-  }
-
-  if (!form.correo.trim()) {
-    return "El correo electrónico es obligatorio."
-  }
-
-  const telefono = form.telefono.trim()
-  if (telefono) {
-    if (telefono.length < 8 || telefono.length > 25) {
-      return "El teléfono debe contener entre 8 y 25 caracteres."
-    }
-    if (!/^[0-9+\-()\s]+$/.test(telefono)) {
-      return "El teléfono contiene caracteres no permitidos."
-    }
-  }
-
-  if (form.password.length < 8) {
-    return "La contraseña debe tener al menos 8 caracteres."
-  }
-  if (!/[A-Z]/.test(form.password)) {
-    return "La contraseña debe contener al menos una letra mayúscula."
-  }
-  if (!/[a-z]/.test(form.password)) {
-    return "La contraseña debe contener al menos una letra minúscula."
-  }
-  if (!/[0-9]/.test(form.password)) {
-    return "La contraseña debe contener al menos un número."
-  }
-
-  return null
-}
 
 export function RegisterPage() {
   const { isAuthenticated, loading } = useAuth()
   const navigate = useNavigate()
 
-  const [form, setForm] = useState(ESTADO_INICIAL)
-  const [error, setError] = useState(null)
-  const [enviando, setEnviando] = useState(false)
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting }
+  } = useForm({
+    resolver: zodResolver(registroSchema),
+    defaultValues: {
+      nombre: "",
+      primerApellido: "",
+      segundoApellido: "",
+      correo: "",
+      telefono: "",
+      password: ""
+    }
+  })
 
   if (!loading && isAuthenticated) {
-    return <Navigate to="/citas" replace />
+    return <Navigate to="/" replace />
   }
 
-  function handleChange(event) {
-    const { name, value } = event.target
-    setForm((actual) => ({ ...actual, [name]: value }))
-  }
-
-  async function handleSubmit(event) {
-    event.preventDefault()
-
-    const mensajeValidacion = validar(form)
-    if (mensajeValidacion) {
-      setError(mensajeValidacion)
-      return
-    }
-
-    setError(null)
-    setEnviando(true)
-
+  async function handleValidSubmit(formData) {
     try {
-      // El esquema del API es strict: los campos opcionales viajan
-      // como null, nunca como cadena vacía.
+      // El esquema del API es strict y los opcionales viajan como null,
+      // nunca como cadena vacía.
       await registerUser({
-        nombre: form.nombre.trim(),
-        primerApellido: form.primerApellido.trim(),
-        segundoApellido: form.segundoApellido.trim() || null,
-        correo: form.correo.trim().toLowerCase(),
-        telefono: form.telefono.trim() || null,
-        password: form.password,
+        nombre: formData.nombre.trim(),
+        primerApellido: formData.primerApellido.trim(),
+        segundoApellido: formData.segundoApellido.trim() || null,
+        correo: formData.correo.trim().toLowerCase(),
+        telefono: formData.telefono.trim() || null,
+        password: formData.password
       })
 
-      navigate("/login", {
-        replace: true,
-        state: { mensaje: "Cuenta creada correctamente. Ya puedes iniciar sesión." },
-      })
-    } catch (registerError) {
-      setError(registerError.message || "No se pudo registrar el usuario.")
-    } finally {
-      setEnviando(false)
+      toast.success("Cuenta creada correctamente. Ya puedes iniciar sesión.")
+      navigate("/login", { replace: true })
+    } catch (error) {
+      toast.error(error.message || "No se pudo registrar el usuario.")
     }
   }
 
   return (
-    <section aria-labelledby="register-title" className="mx-auto w-full max-w-md px-4 py-12 sm:py-16">
+    <section
+      aria-labelledby="register-title"
+      className="mx-auto w-full max-w-md px-4 py-12 sm:py-16"
+    >
       <PageHeader
         title="Crear cuenta"
         description="Regístrate para reservar sesiones con nuestros profesionales"
       />
 
-      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-        <div className="space-y-2">
-          <label htmlFor="nombre" className="text-sm font-medium text-foreground">
+      <form onSubmit={handleSubmit(handleValidSubmit)} className="space-y-5">
+        <div>
+          <label htmlFor="nombre" className="mb-2 block text-sm font-medium">
             Nombre
           </label>
+
           <Input
             id="nombre"
-            name="nombre"
-            required
-            value={form.nombre}
-            onChange={handleChange}
             placeholder="Ana"
+            className={errors.nombre ? "border-destructive" : ""}
+            {...register("nombre")}
           />
+
+          <FormError message={errors.nombre?.message} />
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor="primerApellido" className="text-sm font-medium text-foreground">
+        <div>
+          <label htmlFor="primerApellido" className="mb-2 block text-sm font-medium">
             Primer apellido
           </label>
+
           <Input
             id="primerApellido"
-            name="primerApellido"
-            required
-            value={form.primerApellido}
-            onChange={handleChange}
             placeholder="Rojas"
+            className={errors.primerApellido ? "border-destructive" : ""}
+            {...register("primerApellido")}
           />
+
+          <FormError message={errors.primerApellido?.message} />
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor="segundoApellido" className="text-sm font-medium text-foreground">
+        <div>
+          <label htmlFor="segundoApellido" className="mb-2 block text-sm font-medium">
             Segundo apellido{" "}
             <span className="font-normal text-text-muted">(opcional)</span>
           </label>
+
           <Input
             id="segundoApellido"
-            name="segundoApellido"
-            value={form.segundoApellido}
-            onChange={handleChange}
             placeholder="Mora"
+            className={errors.segundoApellido ? "border-destructive" : ""}
+            {...register("segundoApellido")}
           />
+
+          <FormError message={errors.segundoApellido?.message} />
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor="correo" className="text-sm font-medium text-foreground">
+        <div>
+          <label htmlFor="correo" className="mb-2 block text-sm font-medium">
             Correo electrónico
           </label>
+
           <Input
             id="correo"
-            name="correo"
             type="email"
             autoComplete="email"
-            required
-            value={form.correo}
-            onChange={handleChange}
             placeholder="persona@ejemplo.com"
+            className={errors.correo ? "border-destructive" : ""}
+            {...register("correo")}
           />
+
+          <FormError message={errors.correo?.message} />
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor="telefono" className="text-sm font-medium text-foreground">
+        <div>
+          <label htmlFor="telefono" className="mb-2 block text-sm font-medium">
             Teléfono <span className="font-normal text-text-muted">(opcional)</span>
           </label>
+
           <Input
             id="telefono"
-            name="telefono"
             type="tel"
-            value={form.telefono}
-            onChange={handleChange}
             placeholder="8888-8888"
+            className={errors.telefono ? "border-destructive" : ""}
+            {...register("telefono")}
           />
+
+          <FormError message={errors.telefono?.message} />
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor="password" className="text-sm font-medium text-foreground">
+        <div>
+          <label htmlFor="password" className="mb-2 block text-sm font-medium">
             Contraseña
           </label>
+
           <Input
             id="password"
-            name="password"
             type="password"
             autoComplete="new-password"
-            required
-            value={form.password}
-            onChange={handleChange}
             placeholder="••••••••"
+            className={errors.password ? "border-destructive" : ""}
+            {...register("password")}
           />
-          <p className="text-xs text-text-muted">
-            Mínimo 8 caracteres, con al menos una mayúscula, una minúscula y un número.
+
+          <p className="mt-1 text-xs text-text-muted">
+            Mínimo 8 caracteres, con una mayúscula, una minúscula y un número.
           </p>
+
+          <FormError message={errors.password?.message} />
         </div>
 
-        {error && (
-          <p
-            role="alert"
-            className="rounded-xl border border-danger/30 bg-danger-subtle p-4 text-sm text-danger"
-          >
-            {error}
-          </p>
-        )}
-
-        <Button type="submit" size="lg" className="w-full" disabled={enviando}>
-          {enviando ? "Creando cuenta…" : "Crear cuenta"}
+        <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? "Creando cuenta..." : "Crear cuenta"}
         </Button>
       </form>
 

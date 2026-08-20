@@ -1,8 +1,16 @@
 import { CalendarDays } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
+
+import { Button } from "./ui/button";
+import { useAuth } from "@/auth/useAuth";
 import { GradientText } from "./ui/gradient-text";
 
 export function Navbar() {
+  const { isAuthenticated, hasRole, logout } = useAuth();
+
+  const esAdmin = hasRole(["Administrador"]);
+  const esPersonal = hasRole(["Administrador", "Empleado"]);
+
   const navLinkClass = ({ isActive }) => `
     group relative px-1 py-2
     text-sm font-medium
@@ -90,14 +98,38 @@ export function Navbar() {
             )}
           </NavLink>
 
-          <NavLink to="/citas" className={navLinkClass}>
-            {({ isActive }) => (
-              <>
-                Citas
-                <span className={underlineClass(isActive)} />
-              </>
-            )}
-          </NavLink>
+          {esPersonal && (
+            <NavLink to="/citas" className={navLinkClass}>
+              {({ isActive }) => (
+                <>
+                  Citas
+                  <span className={underlineClass(isActive)} />
+                </>
+              )}
+            </NavLink>
+          )}
+
+          {isAuthenticated && !esPersonal && (
+            <NavLink to="/mis-citas" className={navLinkClass}>
+              {({ isActive }) => (
+                <>
+                  Mis citas
+                  <span className={underlineClass(isActive)} />
+                </>
+              )}
+            </NavLink>
+          )}
+
+          {esAdmin && (
+            <NavLink to="/servicios/nuevo" className={navLinkClass}>
+              {({ isActive }) => (
+                <>
+                  Servicios
+                  <span className={underlineClass(isActive)} />
+                </>
+              )}
+            </NavLink>
+          )}
 
           <NavLink to="/team" className={navLinkClass}>
             {({ isActive }) => (
@@ -111,7 +143,7 @@ export function Navbar() {
           <NavLink to="/about-us" className={navLinkClass}>
             {({ isActive }) => (
               <>
-                About Us
+                Acerca de
                 <span className={underlineClass(isActive)} />
               </>
             )}
@@ -185,6 +217,17 @@ export function Navbar() {
             "
           />
         </NavLink>
+
+        {/* Acciones de sesión */}
+        {isAuthenticated ? (
+          <Button variant="ghost" size="sm" onClick={logout}>
+            Cerrar sesión
+          </Button>
+        ) : (
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/login">Iniciar sesión</Link>
+          </Button>
+        )}
       </nav>
     </header>
   );

@@ -7,8 +7,10 @@ import "./index.css";
 import App from "./App.jsx";
 import { AuthProvider } from "./auth/AuthProvider";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
+import { RoleRoute } from "./auth/RoleRoute";
 import { About } from "./pages/About";
 import { CitasPage } from "./pages/CitasPage";
+import { CrearServicioPage } from "./pages/CrearServicioPage";
 import { EspecialidadDetallePage } from "./pages/EspecialidadDetallePage";
 import { EspecialidadesPage } from "./pages/EspecialidadesPage";
 import { HomePage } from "./pages/HomePage";
@@ -53,6 +55,13 @@ createRoot(document.getElementById("root")).render(
             <Route element={<ProtectedRoute />}>
               <Route path="citas" element={<CitasPage />} />
               <Route path="AgendarCita" element={<NuevaCitaPage />} />
+
+              {/* Mantenimiento: solo Administrador. Va anidado dentro de
+                  ProtectedRoute para que quien no tenga sesión caiga en
+                  /login y no en /unauthorized. */}
+              <Route element={<RoleRoute allowedRoles={["Administrador"]} />}>
+                <Route path="servicios/nuevo" element={<CrearServicioPage />} />
+              </Route>
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />
